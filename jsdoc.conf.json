@@ -1,0 +1,28 @@
+{
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc","closure"]
+  },
+  "source": {
+    "includePattern": ".+\\.js(doc)?$",
+    "excludePattern": "(^|\\/|\\\\)_"
+  },
+  "plugins": ["node_modules/jsdoc-babel"],
+  "babel": {
+    "presets": [
+      "es2015",
+      "stage-0"
+    ],
+    "plugins": [
+      "transform-decorators-legacy",
+      "transform-object-rest-spread"
+    ],
+    "ignore": [
+      "node_modules"
+    ]
+  },
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false
+  }
+}

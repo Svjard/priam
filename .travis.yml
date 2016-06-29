@@ -1,0 +1,26 @@
+language: node_js
+node_js:
+  - 6
+
+sudo: false
+
+before_install:
+  - export CHROME_BIN=chromium-browser  # Karma CI
+  - export DISPLAY=:99.0
+
+before_script:
+  - sh -e /etc/init.d/xvfb start
+  - nohup bash -c webdriver-manager start 2>&1 &  # Protractor CI
+  - sleep 1  # give server time to start
+  
+after_failure:
+  - cat /home/travis/build/Svjard/priam/npm-debug.log
+
+after_success:
+  - npm run coveralls
+
+notifications:
+  email: true
+
+cache:
+  directories: node_modules

@@ -1,0 +1,123 @@
+{
+  "name": "priam",
+  "version": "0.0.1-Alpha.v1",
+  "description": "An Apache Cassandra ORM built on top of datastax/nodejs-driver with full ES6 support.",
+  "author": "Marc Fisher <mcfisher83@gmail.com>",
+  "homepage": "https://github.com/Svjard/priam",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Svjard/priam.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "babel-node": "babel-node --presets es2015,stage-0 --plugins transform-decorators-legacy,transform-object-rest-spread --ignore node_modules",
+    "coverage": "cross-env NODE_ENV=test ./node_modules/.bin/nyc --all --require babel-core/register --require babel-polyfill --reporter=html npm run test",
+    "eslint": "eslint src",
+    "clean": "rimraf coverage && rimraf compiled",
+    "test": "cross-env NODE_ENV=test npm run test:unit",
+    "test:functional": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js --recursive test/functional/",
+    "test:integration": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js --recursive test/integration/",
+    "test:unit": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js --recursive test/unit/",
+    "test:watch": "cross-env NODE_ENV=test npm test -- --watch --no-single-run"
+  },
+  "keywords": [
+    "cassandra",
+    "cql",
+    "cql3",
+    "connection",
+    "pool",
+    "datastax",
+    "nosql",
+    "driver",
+    "database",
+    "orm",
+    "odm",
+    "nodejs"
+  ],
+  "licenses": [
+    {
+      "type": "Apache License, Version 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  ],
+  "babel": {
+    "presets": [
+      "es2015",
+      "stage-0"
+    ],
+    "plugins": [
+      "transform-decorators-legacy",
+      "transform-object-rest-spread"
+    ],
+    "ignore": [
+      "node_modules"
+    ],
+    "env": {
+      "test": {
+        "plugins": [
+          "istanbul"
+        ]
+      }
+    }
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ],
+    "exclude": [
+      "node_modules/",
+      "test/",
+      "deployment/",
+      "coverage/",
+      "content/",
+      "docs/",
+      "compiler.js",
+      "config.js",
+      "config.example.js"
+    ],
+    "require": [
+      "babel-register"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
+  "devDependencies": {
+    "babel-plugin-istanbul": "^1.0.0",
+    "chai-as-promised": "^5.3.0",
+    "expect": "^1.15.2",
+    "jsdoc": "^3.4.0",
+    "jsdoc-babel": "^0.2.0",
+    "mocha": "^2.4.5",
+    "nock": "^7.2.2",
+    "nyc": "^7.0.0-alpha.3",
+    "should": "^8.3.2",
+    "sinon": "^1.17.3"
+  },
+  "dependencies": {
+    "babel-cli": "^6.7.5",
+    "babel-core": "^6.7.6",
+    "babel-eslint": "^6.0.2",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-plugin-transform-object-rest-spread": "^6.4.5",
+    "babel-plugin-transform-runtime": "^6.8.0",
+    "babel-polyfill": "^6.9.1",
+    "babel-preset-es2015": "^6.6.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "bluebird": "^3.3.3",
+    "cassandra-driver": "^3.0.2",
+    "chalk": "^1.1.1",
+    "check-types": "https://github.com/Svjard/check-types.js",
+    "cross-env": "^1.0.7",
+    "eslint": "^2.7.0",
+    "lodash": "^4.6.1",
+    "lodash-inflection": "^1.3.2",
+    "lodash.tostring": "4.1.2",
+    "rimraf": "^2.5.2",
+    "semver": "^5.1.0",
+    "underscore.string": "^3.2.1",
+    "validator": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=6"
+  } 
+}
