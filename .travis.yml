@@ -2,14 +2,13 @@ language: node_js
 node_js:
   - 6
 
-services:
-  - cassandra
-
 sudo: false
 
 before_install:
   - export CHROME_BIN=chromium-browser  # Karma CI
   - export DISPLAY=:99.0
+  - sudo rm -rf /var/lib/cassandra/*
+  - wget http://www.us.apache.org/dist/cassandra/3.7/apache-cassandra-3.7-bin.tar.gz && tar -xvzf apache-cassandra-3.7-bin.tar.gz && sudo sh apache-cassandra-3.7/bin/cassandra
 
 before_script:
   - sh -e /etc/init.d/xvfb start

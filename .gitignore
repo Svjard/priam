@@ -8,3 +8,5 @@ target/
 application.conf
 data/
 node_modules
+coverage
+.nyc_output
