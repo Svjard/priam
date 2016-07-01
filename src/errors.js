@@ -22,6 +22,10 @@ function compileErrors(prefix, namespace, errors) {
   });
 }
 
+/**
+ *
+ * 
+ */
 export let errors = {};
 compileErrors(prefix, errors, [
   'ValidationError',
@@ -40,9 +44,18 @@ compileErrors(prefix, errors, [
 ]);
 
 /**
- * Basic error handling helpers
+ * Error handler for priam. Provides the unique Error type as well
+ * as common functionality for handling errors in the subsystems.
+ * @class
  */
 export class ErrorHandler {
+  /**
+   * Throws a given error message.
+   *
+   * @param {string} [err] The error message, defaults to 'An error occurred'
+   * @public
+   * @static
+   */
   static throwError(err) {
     if (!err) {
       err = new Error('An error occurred');
@@ -55,10 +68,30 @@ export class ErrorHandler {
     throw err;
   }
 
+  /**
+   * Rejects a promise with a given error message.
+   *
+   * @param {string} [err] The error message, defaults to 'An error occurred'
+   * @public
+   * @static
+   */
   static rejectError(err) {
+    if (!err) {
+      err = new Error('An error occurred');
+    }
+
     return Promise.reject(err);
   }
 
+  /**
+   * Logs informative text to the console depending
+   * on the ORM level settings.
+   *
+   * @param {string} module The module where the error occurred
+   * @param {string} info The information to log
+   * @public
+   * @static
+   */
   static logInfo(module, info) {
     if (process.env.NODE_ENV === 'development' ||
         process.env.NODE_ENV === 'staging') {
@@ -66,6 +99,16 @@ export class ErrorHandler {
     }
   }
 
+  /**
+   * Logs warning text to the console depending
+   * on the ORM level settings.
+   *
+   * @param {string} warn The warning message to log
+   * @param {string} [context] Additional context such as corrective
+   *                           action or versioning information
+   * @public
+   * @static
+   */
   static logWarn(warn, context) {
     if (process.env.NODE_ENV === 'development' ||
         process.env.NODE_ENV === 'staging') {
@@ -83,6 +126,16 @@ export class ErrorHandler {
     }
   }
 
+  /**
+   * Logs an error to the console with a the resulting stacktrace
+   * depending on the ORM level settings.
+   *
+   * @param {Error|string|Array<string>} err The error to log
+   * @param {string} [context] Additional context such as corrective
+   *                           action or versioning information
+   * @public
+   * @static
+   */
   static logError(err, context) {
     const origArgs = _.toArray(arguments).slice(1);
     let stack;
@@ -128,18 +181,45 @@ export class ErrorHandler {
     }
   }
 
-  static logErrorAndExit(err, context, help) {
-    ErrorHandler.logError(err, context, help);
+  /**
+   * Logs an error to the console and then exits the process.
+   *
+   * @param {Error|string|Array<string>} err The error to log
+   * @param {string} [context] Additional context such as corrective
+   *                           action or versioning information
+   * @public
+   * @static
+   */
+  static logErrorAndExit(err, context) {
+    ErrorHandler.logError(err, context);
     process.exit(0);
   }
 
-  static logAndThrowError(err, context, help) {
-    ErrorHandler.logError(err, context, help);
-    ErrorHandler.throwError(err, context, help);
+  /**
+   * Logs an error to the console and throws as a new Error.
+   *
+   * @param {Error|string|Array<string>} err The error to log
+   * @param {string} [context] Additional context such as corrective
+   *                           action or versioning information
+   * @public
+   * @static
+   */
+  static logAndThrowError(err, context) {
+    ErrorHandler.logError(err, context);
+    ErrorHandler.throwError(err);
   }
 
-  static logAndRejectError(err, context, help) {
-    ErrorHandler.logError(err, context, help);
-    return ErrorHandler.rejectError(err, context, help);
+  /**
+   * Logs an error to the console and rejects the promise with the error.
+   *
+   * @param {Error|string|Array<string>} err The error to log
+   * @param {string} [context] Additional context such as corrective
+   *                           action or versioning information
+   * @public
+   * @static
+   */
+  static logAndRejectError(err, context) {
+    ErrorHandler.logError(err, context);
+    return ErrorHandler.rejectError(err);
   }
 };

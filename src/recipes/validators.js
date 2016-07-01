@@ -5,6 +5,7 @@ import * as validator from 'validator';
 /**
  * Handles validating email addresses.
  * @const
+ * @module recipes/validators
  */
 export const email = {
   validator: validator.isEmail,
@@ -14,6 +15,7 @@ export const email = {
 /**
  * Handles validating strong passwords.
  * @const
+ * @module recipes/validators
  */
 export const password = {
   validator: (value, instance) => {
@@ -25,6 +27,7 @@ export const password = {
 /**
  * Handles validating value is non-null.
  * @const
+ * @module recipes/validators
  */
 export const required = {
   validator: (value, instance) => {
@@ -38,6 +41,7 @@ export const required = {
  *
  * @param {Array} values An array of values which must contain the value specified
  * @return {Object}
+ * @module recipes/validators
  */
 export function isIn(values) {
   return {
@@ -61,6 +65,7 @@ export function isIn(values) {
  *
  * @param {Array} columns An array of columns (i.e. fields)
  * @return {Object}
+ * @module recipes/validators
  */
 export function requiresOneOf(columns) {
   return {
@@ -87,6 +92,7 @@ export function requiresOneOf(columns) {
  *
  * @param {number} length The minimum length to check for
  * @return {Object}
+ * @module recipes/validators
  */
 export function minLength(length) {
   return {
@@ -107,6 +113,7 @@ export function minLength(length) {
  *
  * @param {number} length The maximum length to check for
  * @return {Object}
+ * @module recipes/validators
  */
 export function maxLength(length) {
   return {
@@ -127,6 +134,7 @@ export function maxLength(length) {
  *
  * @param {number} number The value to check against
  * @return {Object}
+ * @module recipes/validators
  */
 export function greaterThanOrEqualTo(number) {
   return {
@@ -142,6 +150,7 @@ export function greaterThanOrEqualTo(number) {
  *
  * @param {number} number The value to check against
  * @return {Object}
+ * @module recipes/validators
  */
 export function greaterThan(number) {
   return {
@@ -157,6 +166,7 @@ export function greaterThan(number) {
  *
  * @param {number} number The value to check against
  * @return {Object}
+ * @module recipes/validators
  */
 export function lessThanOrEqualTo(number) {
   return {
@@ -172,6 +182,7 @@ export function lessThanOrEqualTo(number) {
  *
  * @param {number} number The value to check against
  * @return {Object}
+ * @module recipes/validators
  */
 export function lessThan(number) {
   return {
@@ -188,6 +199,7 @@ export function lessThan(number) {
  * @param {Function} conditional Conditional function that should return a truthy value
  * @param {Array} validators The set of validators to run if the conditional is true
  * @return {Object}
+ * @module recipes/validators
  */
 export function validateIf(conditional, validators) {
   const validateMultiple = validateMultiple(validators);
@@ -211,6 +223,7 @@ export function validateIf(conditional, validators) {
  * @param {string} displayName The verbose name of the field
  * @param {Array} validators The set of validators to run against the field's value
  * @return {Object}
+ * @module recipes/validators
  */
 export function validateObjectFields(field, displayName, validators) {  
   // normalize
@@ -243,6 +256,7 @@ export function validateObjectFields(field, displayName, validators) {
  *
  * @param {Array} validators The set of validators to run in serial
  * @return {Object}
+ * @module recipes/validators
  */
 export function validateMultiple(validators) {
   let failedValidators = null;

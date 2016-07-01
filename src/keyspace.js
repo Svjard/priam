@@ -7,7 +7,15 @@ import { errors, ErrorHandler } from './errors';
 import * as helpers from './helpers';
 import * as replicationStrategies from './replication-strategies';
 
+/**
+ * @interface
+ */
 const KeyspaceOptions = {
+  /**
+   * Replication strategy to apply to the keyspace.
+   *
+   * @name KeyspaceOptions#replication
+   */
   replication: ,
   durableWrites: true,
   ensureExists: {
