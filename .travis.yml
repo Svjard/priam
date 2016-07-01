@@ -2,14 +2,8 @@ language: node_js
 node_js:
   - 6
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      # nodejs >v4 compiler requirements
-      - g++-4.8
-      - openjdk-8-jdk
+jdk:
+  - oraclejdk8
 
 sudo: true
 
