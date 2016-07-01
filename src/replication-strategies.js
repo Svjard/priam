@@ -12,10 +12,9 @@ import _ from 'lodash';
  * @class
  * @abstract
  */
-class ReplicationStrategy {
-  constructor() {
-    this.class = '';
-  }
+export class ReplicationStrategy {
+  equals(strategy) { return true; }
+  toCassandra() { return {}; }
 }
 
 /**
@@ -25,19 +24,53 @@ class ReplicationStrategy {
  */
 export class SimpleStrategy extends ReplicationStrategy {
   constructor(replicationFactor) {
+    super();
+
+    Object.defineProperty(this, 'class', {
+      enumerable: false,
+      configurable: false,
+      writable: false,
+      value: 'org.apache.cassandra.locator.SimpleStrategy'
+    });
+
     /**
-     * The name of the replication class, must be the fully qualified name
+     * The number of replicas of data on multiple nodes.
      *
-     * @type string
+     * @type {number}
      */
-    this.class = 'org.apache.cassandra.locator.SimpleStrategy';
     this.replicationFactor = replicationFactor;
   }
+  
+  /**
+   * Determines if the strategy as stored in Cassandra is equal to the current
+   * instance of the strategy.
+   *
+   * @param {Object} strategy The strategy object from the Cassandra database,
+   *    {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html}
+   * @return {boolean}
+   */
+  equals(strategy) {
+    if (strategy.class !== this.class) {
+      return false;
+    }
 
-  get replicationFactor() { return this.replicationFactor; }
+    if (!strategy.replication_factor || !this.replicationFactor) {
+      return false;
+    }
 
-  set replicationFactor(replicationFactor) { this.replicationFactor = replicationFactor; }
+    if (strategy.replication_factor.toString() !== this.replicationFactor.toString()) {
+      return false;
+    }
 
+    return true;
+  }
+
+  /**
+   * Converts the replication strategy into an object understandable by Cassandra in
+   * a CREATE KEYSPACE or ALTER KEYSPACE query.
+   *
+   * @return {Object}
+   */
   toCassandra() {
     return { 'class' : this.class, 'replication_factor': this.replicationFactor };
   }
@@ -51,13 +84,23 @@ export class SimpleStrategy extends ReplicationStrategy {
  */
 export class NetworkTopologyStrategy extends ReplicationStrategy {
   constructor(dataCenters) {
-    this.class = 'org.apache.cassandra.locator.NetworkTopologyStrategy';
+    super();
+
+    Object.defineProperty(this, 'class', {
+      enumerable: false,
+      configurable: false,
+      writable: false,
+      value: 'org.apache.cassandra.locator.NetworkTopologyStrategy'
+    });
+    
+    /**
+     * The map of datacenter names to the number of replicas of data on each
+     * node in the data center.
+     *
+     * @type {Object<string, number>}
+     */
     this.dataCenters = dataCenters;
   }
-
-  get dataCenters() { return this.dataCenters; }
-
-  set dataCenters(replicationFactor) { this.dataCenters = dataCenters; }
 
   getDataCenter(name) {
     return this.dataCenters[name];
@@ -67,6 +110,39 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
     this.dataCenters[name] = factor;
   }
 
+  /**
+   * Determines if the strategy as stored in Cassandra is equal to the current
+   * instance of the strategy.
+   *
+   * @param {Object} strategy The strategy object from the Cassandra database,
+   *    {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html}
+   * @return {boolean}
+   */
+  equals(strategy) {
+    if (strategy.class !== this.class) {
+      return false;
+    }
+
+    const keys = Object.keys(this.dataCenters);
+    for (let i = 0; i < keys.length; i++) {
+      if (this.dataCenters[keys[i]] || !strategy[keys[i]]) {
+        return false;
+      }
+
+      if (this.dataCenters[keys[i]].toString() !== !strategy[keys[i]].toString()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Converts the replication strategy into an object understandable by Cassandra in
+   * a CREATE KEYSPACE or ALTER KEYSPACE query.
+   *
+   * @return {Object}
+   */
   toCassandra() {
     const cassandraObj = { 'class' : this.class };
     Object.key(this.dataCenters).forEach(n => {

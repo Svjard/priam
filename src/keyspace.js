@@ -5,24 +5,7 @@ import _ from 'lodash';
 // Modules
 import { errors, ErrorHandler } from './errors';
 import * as helpers from './helpers';
-import * as replicationStrategies from './replication-strategies';
-
-/**
- * @interface
- */
-const KeyspaceOptions = {
-  /**
-   * Replication strategy to apply to the keyspace.
-   *
-   * @name KeyspaceOptions#replication
-   */
-  replication: ,
-  durableWrites: true,
-  ensureExists: {
-    run: true,
-    alter: false
-  }
-};
+import { ReplicationStrategy } from './replication-strategies';
 
 /**
  * Cassandra keyspace representation for the ORM.
@@ -32,34 +15,49 @@ export default class Keyspace {
   /**
    * @param {Client} client The instance of the Cassandra client
    * @param {string} name The name of the keyspace
-   * @param {Object} replication The replication class and parameters, see Cassandra documentation
+   * @param {ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy} 
    * @param {boolean} durableWrites Flag indicating if durable writes is set
-   * @param {Object} options The options set from the Cassandra config, i.e. config.js
+   * @param {Object} [options] The options set for the keyspace
+   * @param {boolean} [options.ensureExists] Flag indicating whether or not to run the creation/update of the
+   *   keyspace
+   * @param {boolean} [options.alter] Flag indicating whether the keyspace should be altered if differences
+   *   are found with the existing keyspace
    * @constructor
    */
   constructor(client, name, replication, durableWrites, options) {
     check.instanceStrict(client, cassandra.Client);
     check.nonEmptyString(name);
-    // check.instanceStrict(replication, ReplicationStrategy);
+    check.instanceStrict(replication, ReplicationStrategy);
     check.boolean(durableWrites);
-    check.instanceStrict(options, KeyspaceOptions);
+    check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
 
     this.client = client;
     this.name = name;
     this.replication = replication;
     this.durableWrites = durableWrites;
-    this.options = options;
+    this.options = options || {};
   }
 
   /**
    * Using the keyspace configuration settings, will enforce the keyspace exists
    * in the database.
    *
-   * @param {Object} options
-   * @return {Promise}
+   * @param {Object} options The options set for the keyspace, see {@link Keyspace#constructor}
+   * @param {boolean} [options.ensureExists] Flag indicating whether or not to run the creation/update of the
+   *   keyspace
+   * @param {boolean} [options.alter] Flag indicating whether the keyspace should be altered if differences
+   *   are found with the existing keyspace
+   * @return {Promise} Will resolve if the keyspace is succesfully created or updated, otherwise will reject
+   *                   with a specific error caught as listed in the 'thrown' errors
+   * @throws SelectSchemaError
+   * @throws CreateError
+   * @throws FixError
+   * @public
    */
   ensureExists(options) {
-    options = _.extend({ alter: false }, this.options.ensureExists, options);
+    check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
+
+    options = _.extend({ alter: false }, this.options, options);
     
     // skip running
     if (!_.isUndefined(options.run) && !options.run) {
@@ -88,20 +86,8 @@ export default class Keyspace {
               const row = result.rows[0];
               let differentReplicationStrategy = false;
 
-              if (row.replication.class !== this.replication.class) {
+              if (!this.replication.equals(row.replication)) {
                 differentReplicationStrategy = true;
-              }
-              else {
-                _.each(this.replication, (value, key) => {
-                  if (key !== 'class') {
-                    if (_.isUndefined(row.replication[key])) {
-                      differentReplicationStrategy = true;
-                    }
-                    else if (row.replication[key] !== value.toString()) { // values are stored as strings in schema
-                      differentReplicationStrategy = true;
-                    }
-                  }
-                });
               }
               
               // diff durable writes
@@ -144,9 +130,11 @@ export default class Keyspace {
   /**
    * Selects the keyspaces available on the system.
    *
-   * @return {Promise}
+   * @return {Promise} The results of the select keyspace schema
+   * @public
    */
   selectSchema() {
+    // As of 3.x system_schema is the keyspace we must specify
     const query = {
       query: 'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ? ALLOW FILTERING',
       params: [this.name],
@@ -159,10 +147,17 @@ export default class Keyspace {
   /**
    * Creates a new keyspace in the Cassandra database.
    *
-   * @param {Object} options
-   * @return {Promise}
+   * @param {Object} options Specific options to building the query
+   *                         to create the keyspace
+   * @param {boolean} ifNotExists Flag indicating whether the "IF NOT EXISTS"
+   *                              operator should be applied in the CREATE KEYSPACE statement
+   * @return {Promise} The result of running the CREATE KEYSPACE statement
+   * @public
+   * {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html}
    */
   create(options) {
+    options & check.object(options) & check.boolean(options.ifNotExists);
+
     options = _.extend({ ifNotExists: false }, options);
     
     const query = {
@@ -183,10 +178,17 @@ export default class Keyspace {
   /**
    * Drops an existing keyspace from the Cassandra database.
    *
-   * @param {Object} options
-   * @return {Promise}
+   * @param {Object} options Specific options to building the query
+   *                         to drop the keyspace
+   * @param {boolean} ifExists Flag indicating whether the "IF EXISTS"
+   *                           operator should be applied in the DROP KEYSPACE statement
+   * @return {Promise} The result of running the DROP KEYSPACE statement
+   * @public
+   * {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/drop_keyspace_r.html}
    */
   drop(options) {
+    options & check.object(options) & check.boolean(options.ifExists);
+    
     options = _.extend({ ifExists: false }, options);
     
     let query = {
@@ -207,12 +209,14 @@ export default class Keyspace {
   /**
    * Alters an existing keyspace from the Cassandra database.
    *
-   * @param {Object} replication The replication class and parameters, see Cassandra documentation
-   * @param {boolean} durableWrites Flag indicating if durable writes is set
-   * @return {Promise}
+   * @param {?ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy} 
+   * @param {?boolean} durableWrites Flag indicating if durable writes is set
+   * @return {Promise} The result of running the ALTER KEYSPACE statement
+   * @public
+   * {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/alter_keyspace_r.html}
    */
   alter(replication, durableWrites) {
-    // check.instanceStrict(replication, ReplicationStrategy);
+    check.instanceStrict(replication, ReplicationStrategy);
     check.boolean(durableWrites);
 
     const query = {
@@ -225,8 +229,9 @@ export default class Keyspace {
     
     let clause = '';
     if (!_.isNull(replication)) {
-      clause += ` WITH REPLICATION = ${JSON.stringify(this.replication).replace(/"/g, "'")}`;
+      clause += ` WITH REPLICATION = ${JSON.stringify(this.replication.toCassandra()).replace(/"/g, "'")}`;
     }
+
     if (!_.isNull(durableWrites)) {
       if (clause.length > 0) {
         clause += ' AND';
@@ -245,8 +250,8 @@ export default class Keyspace {
    * Strings together the "builders" used to generate the query
    * string needed to run the command.
    *
-   * @param {Array<Function>} builders An array of builders that generate a portion
-   *                                   of the query string.
+   * @param {Array<function(): {{query: string, params: Array<*>}}>} builders An array of builders
+   *  that generate a portion of the query string.
    * @param {Object} query The query object that holds the ends result
    * @param {string} query.query The resulting query string
    * @param {Array<*>} query.params The options parameters for the parameterized query string
@@ -264,6 +269,7 @@ export default class Keyspace {
 
   /**
    * Builder for the keyspace name in the query.
+   * @return {{clause: string, params: Array<*>}}
    * @private
    */
   buildKeyspaceName() {
@@ -274,16 +280,18 @@ export default class Keyspace {
 
   /**
    * Builder for the replication setting in the query.
+   * @return {{clause: string, params: Array<*>}}
    * @private
    */
   buildReplication() {
-    let clause = `WITH REPLICATION = ${JSON.stringify(this.replication).replace(/"/g, "'")}`;
+    let clause = `WITH REPLICATION = ${JSON.stringify(this.replication.toCassandra()).replace(/"/g, "'")}`;
     let params = [];
     return { clause: clause, params: params };
   }
 
   /**
    * Builder for the durable writes setting in the query.
+   * @return {{clause: string, params: Array<*>}}
    * @private
    */
   buildDurableWrites() {
@@ -295,11 +303,13 @@ export default class Keyspace {
   /**
    * Executes a given query and optionally parameterizes it if needed.
    *
-   * @param {Object} query The query object that holds the ends result
-   * @param {string} query.query The resulting query string
+   * @param {Object} query The query object
+   * @param {string} query.query The query string to be executed
    * @param {Array<*>} query.params The options parameters for the parameterized query string
-   * @return {Promise}
+   * @return {Promise} Resolves with the resultset if successfull, otherwise rejects with the client
+   *                   specific error
    * @private
+   * {@link http://docs.datastax.com/en/latest-nodejs-driver-api/Client.html}
    */
   execute(query) {
     ErrorHandler.logInfo(`Query: ${query.query}, Parameters: ${query.params}, Context: ${JSON.stringify({ prepare: query.prepare })}`);

@@ -11,7 +11,8 @@
   "main": "index.js",
   "scripts": {
     "babel-node": "babel-node --presets es2015,stage-0 --plugins transform-decorators-legacy,transform-object-rest-spread --ignore node_modules",
-    "coverage": "cross-env NODE_ENV=test ./node_modules/.bin/nyc --all --require babel-core/register --require babel-polyfill --reporter=html npm run test",
+    "coverage": "cross-env NODE_ENV=test ./node_modules/.bin/nyc --all --require babel-core/register --reporter=text-lcov --reporter=html npm run test",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
     "eslint": "eslint src",
     "clean": "rimraf coverage && rimraf compiled",
     "test": "cross-env NODE_ENV=test npm run test:unit",
@@ -65,7 +66,7 @@
       "src/**/*.js"
     ],
     "exclude": [
-      "node_modules/",
+      "node_modules",
       "test/",
       "deployment/",
       "coverage/",
@@ -75,15 +76,13 @@
       "config.js",
       "config.example.js"
     ],
-    "require": [
-      "babel-register"
-    ],
     "sourceMap": false,
     "instrument": false
   },
   "devDependencies": {
     "babel-plugin-istanbul": "^1.0.0",
     "chai-as-promised": "^5.3.0",
+    "coveralls": "^2.11.9",
     "expect": "^1.15.2",
     "jsdoc": "^3.4.0",
     "jsdoc-babel": "^0.2.0",
@@ -119,5 +118,5 @@
   },
   "engines": {
     "node": ">=6"
-  } 
+  }
 }

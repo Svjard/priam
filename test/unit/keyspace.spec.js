@@ -4,7 +4,7 @@ import should from 'should';
 import cassandra from 'cassandra-driver';
 import chalk from 'chalk';
 import Keyspace from '../../src/keyspace';
-import * as replicationStrategies from '../../src/replication-strategies';
+import { SimpleStrategy } from '../../src/replication-strategies';
 import { ErrorHandler, errors } from '../../src/errors';
 
 const currentEnv = process.env.NODE_ENV;
@@ -16,7 +16,7 @@ describe('ORM :: Keyspace', () => {
 
   before((done) => {
     client = new cassandra.Client({ contactPoints: ['127.0.0.1'], keyspace: 'system'});
-    keyspace = new Keyspace(client, 'test', { 'class': replicationStrategies.STRATEGIES.SimpleStrategy, replication_factor: 1 }, true, {}); // replication, durableWrites, options
+    keyspace = new Keyspace(client, 'test', new SimpleStrategy(1), true, {}); // replication, durableWrites, options
     client.execute('DROP KEYSPACE IF EXISTS test', [], function(err, result) {
       done();
     });
@@ -107,14 +107,14 @@ describe('ORM :: Keyspace', () => {
   });
 
   it('should correctly alter the keyspace if alter flag set and if replication strategies has changed', (done) => {
-    keyspace.replication = { 'class': replicationStrategies.STRATEGIES.SimpleStrategy, replication_factor: 11 };
+    keyspace.replication = new SimpleStrategy(11);
 
     keyspace.ensureExists({ run: true, alter: true }).then(result => {
       keyspace.selectSchema().then(result => {
         should(result).not.equal(undefined);
         should(result.rows).not.equal(undefined);
         should(result.rows.length).equal(1);
-        should(result.rows[0].replication.class).equal(replicationStrategies.STRATEGIES.SimpleStrategy);
+        should(result.rows[0].replication.class).equal(keyspace.replication.class);
         should(result.rows[0].replication.replication_factor).equal('11');
 
         done();
