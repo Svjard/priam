@@ -2,11 +2,15 @@ language: node_js
 node_js:
   - 6
 
+jdk:
+  - oraclejdk8
+
 sudo: true
 
 before_install:
   - export CHROME_BIN=chromium-browser  # Karma CI
   - export DISPLAY=:99.0
+  - jdk_switcher use oraclejdk8
   - sudo rm -rf /var/lib/cassandra/*
   - wget http://www.us.apache.org/dist/cassandra/3.7/apache-cassandra-3.7-bin.tar.gz && tar -xvzf apache-cassandra-3.7-bin.tar.gz && sudo sh apache-cassandra-3.7/bin/cassandra
 
