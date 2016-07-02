@@ -2,18 +2,22 @@ language: node_js
 node_js:
   - 6
 
+sudo: true
+
 addons:
   apt:
     packages:
       - oracle-java8-installer
 
-sudo: true
-
 before_install:
   - export CHROME_BIN=chromium-browser  # Karma CI
   - export DISPLAY=:99.0
-  - sudo rm -rf /var/lib/cassandra/*
-  - wget http://www.us.apache.org/dist/cassandra/3.7/apache-cassandra-3.7-bin.tar.gz && tar -xvzf apache-cassandra-3.7-bin.tar.gz && sudo sh apache-cassandra-3.7/bin/cassandra
+  - sudo update-java-alternatives -s java-8-oracle
+  - export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+  - java -version
+  - wget http://www.us.apache.org/dist/cassandra/3.7/apache-cassandra-3.7-bin.tar.gz && tar -xvzf apache-cassandra-3.7.tar.gz
+  - sudo sh ./apache-cassandra-3.7/bin/cassandra -R
+  - sleep 20
 
 before_script:
   - sh -e /etc/init.d/xvfb start
