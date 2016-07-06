@@ -33,7 +33,7 @@ describe('ORM :: Keyspace', () => {
     process.env.NODE_ENV = currentEnv;  
   });
 
-  it('should correctly honor the ensureExists - run flag', (done) => {
+  it('should correctly honor the ensureExists flag', (done) => {
     keyspace.ensureExists({ run: false }).then(result => {
       ErrorHandler.logWarn.calledOnce.should.be.true();
       ErrorHandler.logWarn.calledWith(
