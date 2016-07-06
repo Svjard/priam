@@ -103,7 +103,7 @@ export default class UserDefinedType {
   formatValueTypeForSelf(value) {
     _.each(value, (v, field) => {
       let type = this.fieldType(field);
-      value[field] = types.formatValueType(this._orm, type, v);
+      value[field] = types.formatValueType(this.orm, type, v);
     });
     return value;
   }

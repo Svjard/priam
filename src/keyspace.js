@@ -69,55 +69,54 @@ export default class Keyspace {
       this.selectSchema()
         .then(result => {
           if (!result || !result.rows) {
-            reject(new errors.SelectSchemaError('Select schema returned no result or no rows.'));
+            return reject(new errors.SelectSchemaError('Select schema returned no result or no rows.'));
           }
+
+          if (result.rows.length === 0) {
+            ErrorHandler.logWarn(`Creating keyspace: ${this.name}.`);
+            
+            this.create({ ifNotExists: true })
+              .then(() => { resolve(); })
+              .catch(err => {
+                reject(new errors.CreateError(`Create keyspace failed: ${err}.`));
+              });
+          }
+          // compare schema to existing keyspace
           else {
-            if (result.rows.length === 0) {
-              ErrorHandler.logWarn(`Creating keyspace: ${this.name}.`);
+            const row = result.rows[0];
+            let differentReplicationStrategy = false;
+
+            if (!this.replication.equals(row.replication)) {
+              differentReplicationStrategy = true;
+            }
+            
+            // diff durable writes
+            let differentDurableWrites = false;
+            if (row.durable_writes !== this.durableWrites) {
+              differentDurableWrites = true;
+            }
+            
+            // log
+            if (differentReplicationStrategy) {
+              ErrorHandler.logWarn(`Different replication strategy found for existing keyspace: ${this.name}.`);
+            }
+
+            if (differentDurableWrites) {
+              ErrorHandler.logWarn(`Different durable writes value found for existing keyspace: ${this.name}.`);
+            }
+            
+            // fix
+            if (options.alter && (differentReplicationStrategy || differentDurableWrites)) {
+              ErrorHandler.logWarn('Altering keyspace to match schema...');
               
-              this.create({ ifNotExists: true })
+              this.alter(this.replication, this.durableWrites)
                 .then(() => { resolve(); })
-                .catch((err) => {
-                  reject(new errors.CreateError(`Create keyspace failed: ${err}.`));
+                .catch(err => {
+                  reject(new errors.FixError(`Alter keyspace failed: ${err}.`));
                 });
             }
-            // compare schema to existing keyspace
             else {
-              const row = result.rows[0];
-              let differentReplicationStrategy = false;
-
-              if (!this.replication.equals(row.replication)) {
-                differentReplicationStrategy = true;
-              }
-              
-              // diff durable writes
-              let differentDurableWrites = false;
-              if (row.durable_writes !== this.durableWrites) {
-                differentDurableWrites = true;
-              }
-              
-              // log
-              if (differentReplicationStrategy) {
-                ErrorHandler.logWarn(`Different replication strategy found for existing keyspace: ${this.name}.`);
-              }
-
-              if (differentDurableWrites) {
-                ErrorHandler.logWarn(`Different durable writes value found for existing keyspace: ${this.name}.`);
-              }
-              
-              // fix
-              if (options.alter && (differentReplicationStrategy || differentDurableWrites)) {
-                ErrorHandler.logWarn('Altering keyspace to match schema...');
-                
-                this.alter(this.replication, this.durableWrites)
-                  .then(() => { resolve(); })
-                  .catch((err) => {
-                    reject(new errors.FixError(`Alter keyspace failed: ${err}.`));
-                  });
-              }
-              else {
-                resolve();
-              }
+              resolve();
             }
           }
         })
@@ -167,7 +166,7 @@ export default class Keyspace {
     };
     
     if (options.ifNotExists) {
-      query.query += ' IF NOT EXISTS';
+      query.query = `${query.query} IF NOT EXISTS`;
     }
     
     this.concatBuilders([this.buildKeyspaceName, this.buildReplication, this.buildDurableWrites], query);
@@ -198,7 +197,7 @@ export default class Keyspace {
     };
     
     if (options.ifExists) {
-      query.query += ' IF EXISTS';
+      query.query = `${query.query} IF EXISTS`;
     }
     
     this.concatBuilders([this.buildKeyspaceName], query);
@@ -229,19 +228,19 @@ export default class Keyspace {
     
     let clause = '';
     if (!_.isNull(replication)) {
-      clause += ` WITH REPLICATION = ${JSON.stringify(this.replication.toCassandra()).replace(/"/g, "'")}`;
+      clause = `${clause} WITH REPLICATION = ${JSON.stringify(this.replication.toCassandra()).replace(/"/g, "'")}`;
     }
 
     if (!_.isNull(durableWrites)) {
       if (clause.length > 0) {
-        clause += ' AND';
+        clause = `${clause} AND`;
       }
       else {
-        clause += ' WITH';
+        clause = `${clause} WITH`;
       }
-      clause += ` DURABLE_WRITES = ${durableWrites}`;
+      clause = `${clause} DURABLE_WRITES = ${durableWrites}`;
     }
-    query.query += clause;
+    query.query = `${query.query}${clause}`;
     
     return this.execute(query);
   }
@@ -261,7 +260,7 @@ export default class Keyspace {
     _.each(builders, (builder) => {
       const result = builder.call(this);
       if (result.clause.length > 0) {
-        query.query += ' ' + result.clause;
+        query.query = `${query.query} ${result.clause}`;
         query.params = query.params.concat(result.params);
       }
     });

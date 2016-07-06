@@ -23,16 +23,21 @@ function compileErrors(prefix, namespace, errors) {
 }
 
 /**
+ * Thrown when the {@link Model} fails to validate correctly.
  *
- * 
+ * @class ValidationError
+ * @module errors
+ */
+/**
+ * Thrown when the {@link Model} fails to validate correctly.
+ *
+ * @class UnauthorizedError
+ * @module errors
  */
 export let errors = {};
 compileErrors(prefix, errors, [
   'ValidationError',
-  'TokenRevocationError',
-  'NoPermissionError',
   'UnauthorizedError',
-  'BadRequestError',
   'InvalidColumnError',
   'InvalidTypeError',
   'InvalidArgumentError',
@@ -40,7 +45,8 @@ compileErrors(prefix, errors, [
   'SelectSchemaError',
   'CreateError',
   'FixError',
-  'InvalidValidationDefinitionKeyError'
+  'InvalidValidationDefinitionKeyError',
+  'InvalidWith'
 ]);
 
 /**

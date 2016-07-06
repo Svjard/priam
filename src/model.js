@@ -1,9 +1,6 @@
-/*************************************************************************
- * Copyright (c) 2016 Schlumber Limited
- * All rights reserved.
- ************************************************************************/
+// Libraries
 import _ from 'lodash';
-import nm_s from 'underscore.string';
+// Modules
 import { orm as errors } from './errors';
 import * as helpers from './helpers';
 import Orm from './index';
@@ -266,13 +263,12 @@ function ensureTable(CustomModel) {
  */
 export default class Model {
   constructor(assignments) {
-    console.log('constructor');
-    this._exists = false;
-    this._upsert = false;
-    this._columns = {};
-    this._changes = {};
-    this._prevChanges = {};
-    this._invalidColumns = null;
+    this.exists = false;
+    this.upsert = false;
+    this.columns = {};
+    this.changes = {};
+    this.prevChanges = {};
+    this.invalidColumns = null;
 
     // set assignments
     if (assignments) {
