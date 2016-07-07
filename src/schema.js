@@ -29,12 +29,8 @@ export default class Schema {
    */
   constructor(orm, definition) {
     /* type-check */
-    check.instanceStrict(orm, Orm);
-    check.map(definition, {
-      columns: check.object,
-      key: check.array,
-      with: check.maybe.array
-    });
+    check.assert.instanceStrict(orm, Orm);
+    check.assert.object(definition);
     /* end-type-check */
 
     /**
@@ -94,7 +90,7 @@ export default class Schema {
    */
   isColumn(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
     
     return !!this.definition.columns[column];
@@ -113,7 +109,7 @@ export default class Schema {
    */
   baseColumnType(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     return types.baseType(this.orm, this.definition.columns[column].type);
@@ -131,7 +127,7 @@ export default class Schema {
    */
   columnType(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     if (this.definition.columns[column]) {
@@ -155,7 +151,7 @@ export default class Schema {
    */
   isValidValueTypeForColumn(column, value) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     return types.isValidValueType(this.orm, this.columnType(column), value);
@@ -173,7 +169,7 @@ export default class Schema {
    */
   columnGetter(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     if (this.definition.columns[column]) {
@@ -195,7 +191,7 @@ export default class Schema {
    */
   columnSetter(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     if (this.definition.columns[column]) {
@@ -217,7 +213,7 @@ export default class Schema {
    */
   columnAlias(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     if (this.definition.columns[column]) {
@@ -305,7 +301,7 @@ export default class Schema {
    */
   isKeyColumn(column) {
     /* type-check */
-    check.string(column);
+    check.assert.string(column);
     /* end-type-check */
 
     return _.flatten(this.definition.key).indexOf(column) > -1;
@@ -339,7 +335,7 @@ export default class Schema {
    */
   validateAndNormalizeDefinition(definition) {
     /* type-check */
-    check.object(definition);
+    check.assert.object(definition);
     /* end-type-check */
 
     _.each(definition, (value, key) => {
@@ -383,7 +379,7 @@ export default class Schema {
    */
   validateAndNormalizeColumns(columns) {
     /* type-check */
-    check.object(columns);
+    check.assert.object(columns);
     /* end-type-check */
 
     _.each(columns, (definition, column) => {
@@ -393,7 +389,6 @@ export default class Schema {
         columns[column] = definition;
       }
       
-      // validate definition
       /* type-check */
       check.assert.object(definition);
       /* end-type-check */
@@ -457,7 +452,7 @@ export default class Schema {
    */
   validateAndNormalizeKey(key) {
     /* type-check */
-    check.array(key);
+    check.assert.array(key);
     /* end-type-check */
 
     _.each(key, (column, index) => {
@@ -494,6 +489,10 @@ export default class Schema {
    * @see {@link Schema#constuctor} for more details
    */
   validateAndNormalizeWith(properties) {
+    /* type-check */
+    check.assert.object(properties);
+    /* end-type-check */
+
     _.each(properties, (value, property) => {
       if (!tableWithProperties.PROPERTIES[property]) {
         throw new errors.InvalidWithDefinition(`Invalid with property: ${property}.`);
