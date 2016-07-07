@@ -6,11 +6,15 @@ import * as validator from 'validator';
 const cassandraTypes = cassandra.types;
 
 /**
+ * @namespace helpers
+ */
+
+/**
  * Checks for a javascript object.
  *
  * @param {*} x Value to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isPlainObject(x) {
   return _.isPlainObject(x);
@@ -21,7 +25,7 @@ export function isPlainObject(x) {
  *
  * @param {*} x Value to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isInteger(x) {
   return validator.isInt(x.toString());
@@ -32,7 +36,7 @@ export function isInteger(x) {
  *
  * @param {*} x Value to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isDateTime(x) {
   return validator.isDate(x.toString());
@@ -43,7 +47,7 @@ export function isDateTime(x) {
  *
  * @param {*} x
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isAnything(x) {
   return true;
@@ -54,7 +58,7 @@ export function isAnything(x) {
  *
  * @param {*} x Value to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isUUID(x) {
   var pattern_uuid1 = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
@@ -66,7 +70,7 @@ export function isUUID(x) {
  *
  * @param {*} x Value to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isInet(x) {
   if (!_.isString(x)) {
@@ -86,7 +90,7 @@ export function isInet(x) {
  *
  * @param {*} x Value to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isTuple(x) {
   return (_.isArray(x) && x.length === 3) || (x instanceof cassandraTypes.Tuple);
@@ -98,7 +102,7 @@ export function isTuple(x) {
  * @param {*} x
  * @param {*} y
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function isEqual(x, y) {
   if (_.isArray(x) || isPlainObject(x)) {
@@ -114,7 +118,7 @@ export function isEqual(x, y) {
  *
  * @param {Array} array Array to check against
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function uniq(array) {
   let hash = {};
@@ -134,7 +138,7 @@ export function uniq(array) {
  * @param {Array} array Array to check against
  * @param {*} value
  * @return {boolean}
- * @module helpers
+ * @memberOf helpers
  */
 export function without(array, value) {
   let newArray = [];

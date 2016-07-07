@@ -21,31 +21,50 @@ function compileErrors(prefix, namespace, errors) {
     namespace[error] = CustomError;
   });
 }
-
 /**
- * Thrown when the {@link Model} fails to validate correctly.
- *
- * @class ValidationError
- * @module errors
+ * @namespace errors
  */
 /**
- * Thrown when the {@link Model} fails to validate correctly.
- *
- * @class UnauthorizedError
- * @module errors
+ * @type ValidationError
+ * @memberOf errors#
+ */
+/**
+ * @class InvalidColumnError
+ * @memberOf errors#
+ */
+/**
+ * @class InvalidTypeError
+ * @memberOf errors#
+ */
+/**
+ * @class InvalidValidationDefinitionKeyError
+ * @memberOf errors#
+ */
+/**
+ * @class SelectSchemaError
+ * @memberOf errors#
+ */
+/**
+ * @class CreateError
+ * @memberOf errors#
+ */
+/**
+ * @class FixError
+ * @memberOf errors#
+ */
+/**
+ * @class InvalidWith
+ * @memberOf errors#
  */
 export let errors = {};
 compileErrors(prefix, errors, [
-  'ValidationError',
   'UnauthorizedError',
   'InvalidColumnError',
   'InvalidTypeError',
-  'InvalidArgumentError',
   'InvalidValidationDefinitionKeyError',
   'SelectSchemaError',
   'CreateError',
   'FixError',
-  'InvalidValidationDefinitionKeyError',
   'InvalidWith'
 ]);
 

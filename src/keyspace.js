@@ -7,12 +7,10 @@ import { errors, ErrorHandler } from './errors';
 import * as helpers from './helpers';
 import { ReplicationStrategy } from './replication-strategies';
 
-/**
- * Cassandra keyspace representation for the ORM.
- * @class
- */
 export default class Keyspace {
   /**
+   * Cassandra keyspace representation for the ORM.
+   * @class Keyspace
    * @param {Client} client The instance of the Cassandra client
    * @param {string} name The name of the keyspace
    * @param {ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy} 
@@ -22,7 +20,6 @@ export default class Keyspace {
    *   keyspace
    * @param {boolean} [options.alter] Flag indicating whether the keyspace should be altered if differences
    *   are found with the existing keyspace
-   * @constructor
    */
   constructor(client, name, replication, durableWrites, options) {
     check.instanceStrict(client, cassandra.Client);
@@ -49,10 +46,13 @@ export default class Keyspace {
    *   are found with the existing keyspace
    * @return {Promise} Will resolve if the keyspace is succesfully created or updated, otherwise will reject
    *                   with a specific error caught as listed in the 'thrown' errors
-   * @throws SelectSchemaError
-   * @throws CreateError
-   * @throws FixError
+   * @throws {errors.SelectSchemaError}
+   * @throws {errors.CreateError}
+   * @throws {errors.FixError}
    * @public
+   * @function ensureExists
+   * @memberOf Keyspace
+   * @instance
    */
   ensureExists(options) {
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
@@ -131,6 +131,9 @@ export default class Keyspace {
    *
    * @return {Promise} The results of the select keyspace schema
    * @public
+   * @function selectSchema
+   * @memberOf Keyspace
+   * @instance
    */
   selectSchema() {
     // As of 3.x system_schema is the keyspace we must specify
@@ -152,7 +155,10 @@ export default class Keyspace {
    *                              operator should be applied in the CREATE KEYSPACE statement
    * @return {Promise} The result of running the CREATE KEYSPACE statement
    * @public
-   * {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html}
+   * @function create
+   * @memberOf Keyspace
+   * @instance
+   * @see {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html}
    */
   create(options) {
     options & check.object(options) & check.boolean(options.ifNotExists);
@@ -183,7 +189,10 @@ export default class Keyspace {
    *                           operator should be applied in the DROP KEYSPACE statement
    * @return {Promise} The result of running the DROP KEYSPACE statement
    * @public
-   * {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/drop_keyspace_r.html}
+   * @function drop
+   * @memberOf Keyspace
+   * @instance
+   * @see {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/drop_keyspace_r.html}
    */
   drop(options) {
     options & check.object(options) & check.boolean(options.ifExists);
@@ -212,7 +221,10 @@ export default class Keyspace {
    * @param {?boolean} durableWrites Flag indicating if durable writes is set
    * @return {Promise} The result of running the ALTER KEYSPACE statement
    * @public
-   * {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/alter_keyspace_r.html}
+   * @function alter
+   * @memberOf Keyspace
+   * @instance
+   * @see {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/alter_keyspace_r.html}
    */
   alter(replication, durableWrites) {
     check.instanceStrict(replication, ReplicationStrategy);
@@ -255,6 +267,9 @@ export default class Keyspace {
    * @param {string} query.query The resulting query string
    * @param {Array<*>} query.params The options parameters for the parameterized query string
    * @private
+   * @function concatBuilders
+   * @memberOf Keyspace
+   * @instance
    */
   concatBuilders(builders, query) {
     _.each(builders, (builder) => {
@@ -270,6 +285,9 @@ export default class Keyspace {
    * Builder for the keyspace name in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
+   * @function buildKeyspaceName
+   * @memberOf Keyspace
+   * @instance
    */
   buildKeyspaceName() {
     let clause = this.name;
@@ -281,6 +299,9 @@ export default class Keyspace {
    * Builder for the replication setting in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
+   * @function buildReplication
+   * @memberOf Keyspace
+   * @instance
    */
   buildReplication() {
     let clause = `WITH REPLICATION = ${JSON.stringify(this.replication.toCassandra()).replace(/"/g, "'")}`;
@@ -292,6 +313,9 @@ export default class Keyspace {
    * Builder for the durable writes setting in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
+   * @function buildDurableWrites
+   * @memberOf Keyspace
+   * @instance
    */
   buildDurableWrites() {
     let clause = `AND DURABLE_WRITES = ${this.durableWrites}`;
@@ -308,7 +332,10 @@ export default class Keyspace {
    * @return {Promise} Resolves with the resultset if successfull, otherwise rejects with the client
    *                   specific error
    * @private
-   * {@link http://docs.datastax.com/en/latest-nodejs-driver-api/Client.html}
+   * @function execute
+   * @memberOf Keyspace
+   * @instance
+   * @see {@link http://docs.datastax.com/en/latest-nodejs-driver-api/Client.html}
    */
   execute(query) {
     ErrorHandler.logInfo(`Query: ${query.query}, Parameters: ${query.params}, Context: ${JSON.stringify({ prepare: query.prepare })}`);

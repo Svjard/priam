@@ -1,50 +1,129 @@
 // Libraries
 import _ from 'lodash';
-// @TODO replace
-import nm_s from 'underscore.string';
+import check from 'check-types';
 // Modules
 import { errors, errorHandler } from './errors';
-import Orm from './index';
 import * as helpers from './helpers';
+import Orm from './index';
 import * as types from './types';
 import tableWithProperties from './table-with-properties';
-import i18n from '../i18n';
 
+/**
+ * Schema representation for a table in Cassandra.
+ * @class
+ */
 class Schema {
+  /**
+   * @param {Orm} orm The instance of the ORM
+   * @param {!Object} definition The schema definition 
+   * @param {Object.<string, string>|!Object} definition.columns The set of columns for the schema
+   *  which may be a simple column name mapped to its type, or an object containing the type, optional alias, and optional get/set methods
+   * @param {Array<string|Array<string>>} definition.key The Table's primary key, composite keys
+   *  can be represented by a grouped nested array
+   */
   constructor(orm, definition) {
+    check.instanceStrict(orm, Orm);
+    check.map(definition, {
+      columns: check.object,
+      key: check.array
+    });
+
     this.orm = orm;
     this.aliases = {};
     this.definition = definition;
     this.isCounterColumnFamily = false;
     
-    this.validateAndNormalizeDefinition(definition); // must be called after setting this._definition
+    this.validateAndNormalizeDefinition(definition);
   }
 
+  /**
+   * Return the list of columns for this schema.
+   *
+   * @return {Array<string>}
+   * @public
+   */
   columns() {
     return _.keys(this.definition.columns);
   }
 
+  /**
+   * Identifies whether a given column exists in the schema.
+   *
+   * @param {string} column The name of the column to check for
+   * @return {boolean}
+   * @public
+   */
   isColumn(column) {
+    check.string(column);
+
     return !!this.definition.columns[column];
   }
 
+  /**
+   * Returns the base type which will strip out any keywords such as 'frozen' 
+   * from the type definition.
+   *
+   * @param {string} column The name of the column
+   * @return {string}
+   * @public
+   */
   baseColumnType(column) {
+    check.string(column);
+
     return types.baseType(this.orm, this.definition.columns[column].type);
   }
 
+  /**
+   * Returns the type in string representation for a given column in the schema.
+   *
+   * @param {string} column The name of the column
+   * @return {string}
+   * @public
+   */
   columnType(column) {
+    check.string(column);
+
     return this.definition.columns[column].type;
   }
 
+  /**
+   * Identifies whether a given value is compatible with the column's type
+   * in the schema.
+   *
+   * @param {string} column The name of the column
+   * @param {*} value The value to compare against the column's type
+   * @return {boolean}
+   * @public
+   */
   isValidValueTypeForColumn(column, value) {
+    check.string(column);
+  
     return types.isValidValueType(this.orm, this.columnType(column), value);
   }
-
+  
+  /**
+   * Utility method to get the `get` method on a column's definition.
+   *
+   * @param {string} column The name of the column
+   * @return {function(*): *}
+   * @public
+   */
   columnGetter(column) {
+    check.string(column);
+
     return this.definition.columns[column].get;
   }
-
+  
+  /**
+   * Utility method to get the `set` method on a column's definition.
+   *
+   * @param {string} column The name of the column
+   * @return {function(*): *}
+   * @public
+   */
   columnSetter(column) {
+    check.string(column);
+
     return this.definition.columns[column].set;
   }
 
@@ -438,7 +517,7 @@ class Schema {
 
 Schema._CALLBACK_KEYS = ['afterNew', 'beforeCreate', 'afterCreate', 'beforeValidate', 'afterValidate', 'beforeSave', 'afterSave', 'beforeDelete', 'afterDelete'];
 _.each(Schema._CALLBACK_KEYS, (key, index) => {
-  let methodName = 'add' + nm_s.capitalize(key) + 'Callback';
+  let methodName = 'add' + key.charAt(0).toUpperCase() + key.slice(1) + 'Callback';
   Schema.prototype[methodName] = (callback) => {
     addCallback.call(this, key, callback);
   };

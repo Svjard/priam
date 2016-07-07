@@ -1,10 +1,6 @@
-/*************************************************************************
- * Copyright (c) 2016 Schlumber Limited
- * All rights reserved.
- ************************************************************************/
- // Libraries
-import cassandra from 'cassandra-driver';
+// Libraries
 import _ from 'lodash';
+import cassandra from 'cassandra-driver';
 // Modules
 import { errors } from './errors';
 import * as helpers from './helpers';
@@ -685,7 +681,7 @@ class Query {
           }
           if (operator === '$in') {
             clause += ' "' + column + '" ' + WHERE_OPERATIONS[operator] + '(';
-            nm_.each(value, (v, index) => {
+            _.each(value, (v, index) => {
               if (index > 0) {
                 clause += ', ';
               }
@@ -862,7 +858,7 @@ class Query {
           }
           if (operator === '$in') {
             clause += ' "' + column + '" ' + IF_OPERATIONS[operator] + '(';
-            nm_.each(value, (v, index) => {
+            _.each(value, (v, index) => {
               if (index > 0) {
                 clause += ', ';
               }

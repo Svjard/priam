@@ -20,6 +20,7 @@ import util from 'util';
  * @param {*} value The current value of the field
  * @param {Model} instance The instance of the model 
  * @return {(boolean | null)}
+ * @ignore
  */
 function validate(column, value, instance) {
   if (instance.validations) {

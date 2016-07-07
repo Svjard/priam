@@ -41,8 +41,8 @@ describe('ORM :: Table', () => {
   let table;
   let sandbox;
 
-  before((done) => {
-    keyspace = new Table(new Orm(), 'test', BASE_SCHEMA, {});
+  before(() => {
+    // table = new Table(new Orm(), 'test', BASE_SCHEMA, {});
   });
 
   beforeEach(() => {

@@ -2,10 +2,14 @@
 import Orm from '../index';
 
 /**
+ * @namespace recipes.callbacks
+ */
+
+/**
  * Applies a new UUID to a given column in the table.
  *
  * @param {string} column Name of the column in the table.
- * @module recipes/callbacks
+ * @memberOf recipes.callbacks
  */
 export function setUUID(column, instance) {
   return ((column, instance) => {
@@ -19,7 +23,7 @@ export function setUUID(column, instance) {
  * Applies a new time-base UUID to a given column in the table.
  *
  * @param {string} column Name of the column in the table. 
- * @module recipes/callbacks
+ * @memberOf recipes.callbacks
  */
 export function setTimeUUID(column, instance) {
   return ((column, instance) => {
@@ -33,7 +37,7 @@ export function setTimeUUID(column, instance) {
  * Applies a new timestamp to a given column in the table.
  *
  * @param {string} column Name of the column in the table. 
- * @module recipes/callbacks
+ * @memberOf recipes.callbacks
  */
 export function setTimestampToNow(column, instance) {
   return ((column, instance) => {

@@ -3,11 +3,15 @@ import _ from 'lodash';
 import validator from 'validator';
 
 /**
+ * @namespace recipes.sanitizers
+ */
+
+/**
  * Santizes email address to remove whitespace and invalid characters.
  *
  * @param {string} value The email address to santize
  * @return {string}
- * @module recipes/santizers
+ * @memberOf recipes.sanitizers
  */
 export function email(value, instance) {
   if (validator.isEmail(value)) {
@@ -23,7 +27,7 @@ export function email(value, instance) {
  *
  * @param {Function} sanitizer The santizer function to run against a set of strings
  * @return {string}
- * @module recipes/santizers
+ * @memberOf recipes.sanitizers
  */
 export function map(sanitizer) {
   return (value, instance) => {
@@ -38,7 +42,7 @@ export function map(sanitizer) {
  *
  * @param {string} value The string to santize
  * @return {string}
- * @module recipes/santizers
+ * @memberOf recipes.sanitizers
  */
 export function lowercase(value, instance) {
   return value.toLowerCase();
@@ -49,7 +53,7 @@ export function lowercase(value, instance) {
  *
  * @param {string} value The string to santize
  * @return {string}
- * @module recipes/santizers
+ * @memberOf recipes.sanitizers
  */
 export function trim(value, instance) {
   return validator.trim(value);

@@ -20,7 +20,7 @@ function checkOptions(options) {
  * @class
  */
 export default class Table {
-    /**
+  /**
    * @param {Orm} orm The instance of the ORM
    * @param {string} name The name of the table
    * @param {Object} schema The replication class and parameters, {@link ReplicationStrategy} 
@@ -565,8 +565,8 @@ export default class Table {
    * Builder for the table's WITH information in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
-   * {@link https://docs.datastax.com/en/cql/3.0/cql/cql_reference/create_table_r.html?scroll=reference_ds_v3f_vfk_xj__setting-a-table-property}
    * @throws InvalidWith
+   * @see {@link https://docs.datastax.com/en/cql/3.0/cql/cql_reference/create_table_r.html?scroll=reference_ds_v3f_vfk_xj__setting-a-table-property}
    */
   buildWith() {
     let clause = '';
