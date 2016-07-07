@@ -579,6 +579,7 @@ export default class Table {
         if (i > 0) {
           clause = `${clause} AND`;
         }
+
         if (property === '$clustering_order_by') {
           clause = `${clause} ${tableWithProperties.PROPERTIES[property]}(`;
           _.each(value, (order, column) => {

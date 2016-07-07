@@ -12,6 +12,18 @@ import Validations from './validations';
 import WrappedStream from './wrapped-stream';
 import util from 'util';
 
+const HOOKS = [
+  'afterNew',
+  'beforeCreate',
+  'afterCreate',
+  'beforeValidate',
+  'afterValidate',
+  'beforeSave',
+  'afterSave',
+  'beforeDelete',
+  'afterDelete'
+];
+
 /**
  * Handler for validating a field in the model via
  * the validations.

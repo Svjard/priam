@@ -3,15 +3,12 @@ import chalk from 'chalk';
 import path from 'path';
 import Promise from 'bluebird';
 
-const prefix = 'priam.orm.error.';
-
-function compileErrors(prefix, namespace, errors) {
+function compileErrors(namespace, errors) {
   _.each(errors, (error, index) => {
     class CustomError extends Error {
       constructor(message) {
         super(message);
 
-        this.name = prefix + error;
         this.message = message;
         this.errorType = error;
 
@@ -21,51 +18,26 @@ function compileErrors(prefix, namespace, errors) {
     namespace[error] = CustomError;
   });
 }
-/**
- * @namespace errors
- */
-/**
- * @type ValidationError
- * @memberOf errors#
- */
-/**
- * @class InvalidColumnError
- * @memberOf errors#
- */
-/**
- * @class InvalidTypeError
- * @memberOf errors#
- */
-/**
- * @class InvalidValidationDefinitionKeyError
- * @memberOf errors#
- */
-/**
- * @class SelectSchemaError
- * @memberOf errors#
- */
-/**
- * @class CreateError
- * @memberOf errors#
- */
-/**
- * @class FixError
- * @memberOf errors#
- */
-/**
- * @class InvalidWith
- * @memberOf errors#
- */
+
 export let errors = {};
-compileErrors(prefix, errors, [
-  'UnauthorizedError',
-  'InvalidColumnError',
-  'InvalidTypeError',
-  'InvalidValidationDefinitionKeyError',
-  'SelectSchemaError',
+compileErrors(errors, [
   'CreateError',
   'FixError',
-  'InvalidWith'
+  'InvalidAliasDefinition',
+  'InvalidColumnDefinitionKey',
+  'InvalidColumnError',
+  'InvalidGetterSetterDefinition',
+  'InvalidKeyDefinition',
+  'InvalidSchemaDefinitionKey',
+  'InvalidType',
+  'InvalidTypeDefinition',
+  'InvalidTypeError',
+  'InvalidValidationDefinitionKeyError',
+  'InvalidWith',
+  'InvalidWithDefinition',
+  'MissingDefinition',
+  'SelectSchemaError',
+  'UnauthorizedError'
 ]);
 
 /**

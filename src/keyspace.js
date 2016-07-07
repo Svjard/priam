@@ -22,12 +22,14 @@ export default class Keyspace {
    *   are found with the existing keyspace
    */
   constructor(client, name, replication, durableWrites, options) {
+    /* type-check */
     check.instanceStrict(client, cassandra.Client);
     check.nonEmptyString(name);
     check.instanceStrict(replication, ReplicationStrategy);
     check.boolean(durableWrites);
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
-
+    /* end-type-check */
+    
     this.client = client;
     this.name = name;
     this.replication = replication;
@@ -55,8 +57,10 @@ export default class Keyspace {
    * @instance
    */
   ensureExists(options) {
+    /* type-check */
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
-
+    /* end-type-check */
+    
     options = _.extend({ alter: false }, this.options, options);
     
     // skip running
@@ -161,7 +165,9 @@ export default class Keyspace {
    * @see {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/create_keyspace_r.html}
    */
   create(options) {
+    /* type-check */
     options & check.object(options) & check.boolean(options.ifNotExists);
+    /* end-type-check */
 
     options = _.extend({ ifNotExists: false }, options);
     
@@ -195,8 +201,10 @@ export default class Keyspace {
    * @see {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/drop_keyspace_r.html}
    */
   drop(options) {
+    /* type-check */
     options & check.object(options) & check.boolean(options.ifExists);
-    
+    /* end-type-check */
+
     options = _.extend({ ifExists: false }, options);
     
     let query = {
@@ -227,8 +235,10 @@ export default class Keyspace {
    * @see {@link https://docs.datastax.com/en/cql/3.1/cql/cql_reference/alter_keyspace_r.html}
    */
   alter(replication, durableWrites) {
+    /* type-check */
     check.instanceStrict(replication, ReplicationStrategy);
     check.boolean(durableWrites);
+    /* end-type-check */
 
     const query = {
       query: 'ALTER KEYSPACE',
