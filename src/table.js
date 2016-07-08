@@ -11,8 +11,8 @@ import * as types from './types';
 import Orm from './index';
 
 function checkOptions(options) {
-  check.object(options) & check.boolean(options.recreate) & check.boolean(options.recreateColumn)
-    & check.boolean(options.removeExtra) & check.boolean(options.addMissing) & check.boolean(options.ensureExists);
+  check.assert.object(options) & check.assert.boolean(options.recreate) & check.assert.boolean(options.recreateColumn)
+    & check.assert.boolean(options.removeExtra) & check.assert.boolean(options.addMissing) & check.assert.boolean(options.ensureExists);
 }
 
 export default class Table {
@@ -34,16 +34,39 @@ export default class Table {
    * @constructor
    */
   constructor(orm, name, schema, options) {
-    /* check-type */
-    check.instanceStrict(orm, Orm);
-    check.nonEmptyString(name);
+    /* type-check */
+    check.assert.instanceStrict(orm, Orm);
+    check.assert.nonEmptyString(name);
     checkOptions(options);
-    /* end-check-type */
-
-    this.orm = orm;
+    /* end-type-check */
+    /**
+     * @type {string}
+     * @name name
+     * @private
+     * @memberOf Table
+     */
     this.name = name;
+    /**
+     * @type {Schema}
+     * @name schema
+     * @private
+     * @memberOf Table
+     */
     this.schema = schema;
+    /**
+     * @type {?Object}
+     * @name options
+     * @private
+     * @memberOf Table
+     */
     this.options = options;
+    /**
+     * @type {Orm}
+     * @name orm
+     * @private
+     * @memberOf Table
+     */
+    this.orm = orm;
   }
  
   /**
@@ -59,14 +82,18 @@ export default class Table {
    * @param {boolean} [options.addMissing] Flag indicating whether to add missing columns to the table
    * @param {boolean} [options.ensureExists] Flag indicating whether or not to run the creation/update of the
    *   table
-   * @throws SelectSchemaError
-   * @throws CreateError
-   * @throws FixError
+   * @throws {SelectSchemaError}
+   * @throws {CreateError}
+   * @throws {FixError}
    * @public
+   * @function ensureExists
+   * @memberOf Table
+   * @instance
    */
   ensureExists(options) {
+    /* type-check */
     checkOptions(options);
-
+    /* end-type-check */
     // default options
     options = _.extend({ recreate: false, recreateColumn: false, removeExtra: false, addMissing: false }, this.options, options);
     
@@ -183,8 +210,11 @@ export default class Table {
    *
    * @return {Promise} Resolves when the table has successfully been created, otherwise
    *  rejects with error
-   * @throws FixError
+   * @throws {FixError}
    * @public
+   * @function recreate
+   * @memberOf Table
+   * @instance
    */
   recreate() {
     return new Promise((resolve, reject) => {
@@ -212,8 +242,14 @@ export default class Table {
    * @return {Array<Promise>} Promises required that will resolve per each successful recreated column,
    *  otherwise reject with error
    * @private
+   * @function fixMismatched
+   * @memberOf Table
+   * @instance
    */
   fixMismatched(mismatched) {
+    /* type-check */
+    check.assert.array(mismatched);
+    /* end-type-check */
     ErrorHandler.logWarn('Recreating columns with mismatched types...');
   
     let promises = [];
@@ -248,8 +284,14 @@ export default class Table {
    * @return {Array<Promise>} Promises required that will resolve per each successful dropped column,
    *  otherwise reject with error
    * @private
+   * @function fixExtra
+   * @memberOf Table
+   * @instance
    */
   fixExtra(extra) {
+    /* type-check */
+    check.assert.array(extra);
+    /* end-type-check */
     ErrorHandler.logWarn('Removing extra columns...');
   
     let promises = [];
@@ -278,8 +320,14 @@ export default class Table {
    * @return {Array<Promise>} Promises required that will resolve per each successful created column,
    *  otherwise reject with error
    * @private
+   * @function fixMissing
+   * @memberOf Table
+   * @instance
    */
   fixMissing(missing) {
+    /* type-check */
+    check.assert.array(missing);
+    /* end-type-check */
     ErrorHandler.logWarn('Adding missing columns...');
     let promises = [];
     _.each(extra, (column, index) => {
@@ -305,6 +353,9 @@ export default class Table {
    *
    * @return {Promise} The results of the select columns schema
    * @public
+   * @function selectSchema
+   * @memberOf Table
+   * @instance
    */
   selectSchema() {
     // As of 3.x system_schema is the keyspace we must specify
@@ -325,10 +376,14 @@ export default class Table {
    *  for the query
    * @return {Promise} The results of the CREATE TABLE query
    * @public
+   * @function create
+   * @memberOf Table
+   * @instance
    */
   create(options) {
-    check.object(options) & check.boolean(options.ifNotExists);
-    
+    /* type-check */
+    check.assert.object(options) & check.assert.boolean(options.ifNotExists);
+    /* end-type-check */
     // default options
     options = _.extend({ ifNotExists: false }, options);
     
@@ -355,10 +410,14 @@ export default class Table {
    *  for the query
    * @return {Promise} The results of the DROP TABLE query
    * @public
+   * @function drop
+   * @memberOf Table
+   * @instance
    */
   drop(options) {
-    check.object(options) & check.boolean(options.ifExists);
-
+    /* type-check */
+    check.assert.object(options) & check.assert.boolean(options.ifExists);
+    /* end-type-check */
     // default options
     options = _.extend({ ifExists: false }, options);
     
@@ -384,11 +443,15 @@ export default class Table {
    * @param {string} type The columns data type
    * @return {Promise} The results of the ALTER TABLE query
    * @public
+   * @function addColumn
+   * @memberOf Table
+   * @instance
    */
   addColumn(column, type) {
-    check.nonEmptyString(column);
-    check.nonEmptyString(type);
-    
+    /* type-check */
+    check.assert.nonEmptyString(column);
+    check.assert.nonEmptyString(type);
+    /* end-type-check */
     let query = {
       query: 'ALTER TABLE',
       params: [],
@@ -408,10 +471,14 @@ export default class Table {
    * @param {string} column The name of the column
    * @return {Promise} The results of the ALTER TABLE query
    * @public
+   * @function dropColumn
+   * @memberOf Table
+   * @instance
    */
   dropColumn(column) {
-    check.nonEmptyString(column);
-    
+    /* type-check */
+    check.assert.nonEmptyString(column);
+    /* end-type-check */
     let query = {
       query: 'ALTER TABLE',
       params: [],
@@ -432,11 +499,15 @@ export default class Table {
    * @param {string} newName The new name to give the column
    * @return {Promise} The results of the ALTER TABLE query
    * @public
+   * @function renameColumn
+   * @memberOf Table
+   * @instance
    */
   renameColumn(column, newName) {
-    check.nonEmptyString(column);
-    check.nonEmptyString(newName);
-    
+    /* type-check */
+    check.assert.nonEmptyString(column);
+    check.assertnonEmptyString(newName);
+    /* end-type-check */
     let query = {
       query: 'ALTER TABLE',
       params: [],
@@ -457,11 +528,15 @@ export default class Table {
    * @param {string} newType The new data type to assign the column
    * @return {Promise} The results of the ALTER TABLE query
    * @public
+   * @function alterType
+   * @memberOf Table
+   * @instance
    */
   alterType(column, newType) {
-    check.nonEmptyString(column);
-    check.nonEmptyString(newType);
-    
+    /* type-check */
+    check.assert.nonEmptyString(column);
+    check.assert.nonEmptyString(newType);
+    /* end-type-check */
     let query = {
       query: 'ALTER TABLE',
       params: [],
@@ -485,6 +560,9 @@ export default class Table {
    * @param {string} query.query The resulting query string
    * @param {Array<*>} query.params The options parameters for the parameterized query string
    * @private
+   * @function concatBuilders
+   * @memberOf Table
+   * @instance
    */
   concatBuilders(builders, query) {
     _.each(builders, (builder) => {
@@ -500,6 +578,9 @@ export default class Table {
    * Builder for the table's fully qualified name in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
+   * @function buildTableName
+   * @memberOf Table
+   * @instance
    */
   buildTableName() {
     let clause = this.orm.keyspace + '.' + this.name;
@@ -511,6 +592,9 @@ export default class Table {
    * Builder for the table's column information in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
+   * @function buildColumns
+   * @memberOf Table
+   * @instance
    */
   buildColumns() {
     let clause = '(';
@@ -565,7 +649,10 @@ export default class Table {
    * Builder for the table's WITH information in the query.
    * @return {{clause: string, params: Array<*>}}
    * @private
-   * @throws InvalidWith
+   * @throws {InvalidWith}
+   * @function buildWith
+   * @memberOf Table
+   * @instance
    * @see {@link https://docs.datastax.com/en/cql/3.0/cql/cql_reference/create_table_r.html?scroll=reference_ds_v3f_vfk_xj__setting-a-table-property}
    */
   buildWith() {
