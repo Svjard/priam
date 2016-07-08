@@ -54,6 +54,27 @@ describe('ORM :: Schema', () => {
     should(schema.definition).deepEqual(BASE_SCHEMA);
     should(Object.keys(schema.aliases).length).equal(1);
     should(schema.aliases.emailAddress).equal('email');
+    should(schema.isAlias('emailAddress')).equal(true);
+    should(schema.isAlias('invalid')).equal(false);    
+    should(schema.columns()).deepEqual(Object.keys(BASE_SCHEMA.columns));
+    Object.keys(BASE_SCHEMA.columns).forEach(key => {
+      should(schema.isColumn(key)).equal(true);
+      if (key === 'craziness' || key === 'tags') {
+        should(schema.baseColumnType(key)).equal('list');
+      }
+      else if (key === 'friends') {
+        should(schema.baseColumnType(key)).equal('set');
+      }
+      else if (key === 'browsers') {
+        should(schema.baseColumnType(key)).equal('map');
+      }
+      else {
+        should(schema.baseColumnType(key)).equal(BASE_SCHEMA.columns[key].type);
+      }
+      should(schema.columnType(key)).equal(BASE_SCHEMA.columns[key].type);
+    });
+    should(schema.isColumn('invalid')).equal(false);
+    should(schema.columnType('invalid')).equal(null);
     should(schema.partitionKey()).equal('id');
     done();
   });

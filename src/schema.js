@@ -109,7 +109,7 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-    return types.baseType(this.orm, this.definition.columns[column].type);
+    return types.baseType(this.definition.columns[column].type);
   }
 
   /**
