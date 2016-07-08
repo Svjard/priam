@@ -66,6 +66,7 @@
     "chai-as-promised": "^5.3.0",
     "coveralls": "^2.11.9",
     "expect": "^1.15.2",
+    "isparta": "^4.0.0",
     "jsdoc": "^3.4.0",
     "jsdoc-babel": "^0.2.0",
     "minimatch": "^3.0.2",
