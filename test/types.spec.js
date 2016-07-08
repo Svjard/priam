@@ -3,8 +3,8 @@ import sinon from 'sinon';
 import should from 'should';
 import cassandra from 'cassandra-driver';
 import chalk from 'chalk';
-import * as types from '../../src/types';
-import { ErrorHandler, errors } from '../../src/errors';
+import * as types from '../src/types';
+import { ErrorHandler, errors } from '../src/errors';
 
 const cassandraTypes = [
   'timestamp',

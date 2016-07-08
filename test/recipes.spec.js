@@ -1,7 +1,7 @@
 /*globals describe, beforeEach, afterEach, it*/
 import sinon        from 'sinon';
 import should       from 'should';
-import * as sanitzers from '../../src/recipes/sanitizers';
+import * as sanitzers from '../src/recipes/sanitizers';
 
 describe('ORM :: Recipes', () => {
   let sandbox;

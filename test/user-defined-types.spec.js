@@ -1,7 +1,7 @@
 /*globals describe, beforeEach, afterEach, it*/
 import sinon        from 'sinon';
 import should       from 'should';
-import uncapitalise from '../../src/user-defined-type';
+import uncapitalise from '../src/user-defined-type';
 
 describe('ORM :: User-defined Types', () => {
   let sandbox;

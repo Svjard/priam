@@ -3,9 +3,9 @@ import sinon from 'sinon';
 import should from 'should';
 import cassandra from 'cassandra-driver';
 import chalk from 'chalk';
-import Orm from '../../src';
-import Table from '../../src/table';
-import { ErrorHandler, errors } from '../../src/errors';
+import Orm from '../src';
+import Table from '../src/table';
+import { ErrorHandler, errors } from '../src/errors';
 
 const currentEnv = process.env.NODE_ENV;
 

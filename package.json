@@ -14,15 +14,12 @@
     "build": "cross-env NODE_ENV=production rimraf dist && node build.js",
     "build.dev": "cross-env NODE_ENV=production rimraf dist && node strip.js && uglifyjs ./build/* --output ./dist/priam.js",
     "lint": "jshint ./src/check-types.js",
-    "coverage": "cross-env NODE_ENV=test ./node_modules/.bin/nyc --all --require babel-core/register --reporter=html npm run test",
+    "coverage": "./node_modules/.bin/babel-node ./node_modules/isparta/bin/isparta cover --report lcov --report text --report html node_modules/mocha/bin/_mocha -- --compilers js:compiler.js test/*.js",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
     "docs": "./node_modules/.bin/jsdoc --configure jsdoc.conf.json src/**/*.js",
     "eslint": "eslint src",
     "clean": "rimraf coverage && rimraf compiled",
-    "test": "cross-env NODE_ENV=test npm run test:unit",
-    "test:functional": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js --recursive test/functional/",
-    "test:integration": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js --recursive test/integration/",
-    "test:unit": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js --recursive test/unit/",
+    "test": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js test/*.js",
     "test:watch": "cross-env NODE_ENV=test npm test -- --watch --no-single-run"
   },
   "keywords": [
@@ -65,26 +62,7 @@
       }
     }
   },
-  "nyc": {
-    "include": [
-      "src/**/*.js"
-    ],
-    "exclude": [
-      "node_modules",
-      "test/",
-      "deployment/",
-      "coverage/",
-      "content/",
-      "docs/",
-      "compiler.js",
-      "config.js",
-      "config.example.js"
-    ],
-    "sourceMap": false,
-    "instrument": false
-  },
   "devDependencies": {
-    "babel-plugin-istanbul": "^1.0.0",
     "chai-as-promised": "^5.3.0",
     "coveralls": "^2.11.9",
     "expect": "^1.15.2",
@@ -93,7 +71,6 @@
     "minimatch": "^3.0.2",
     "mocha": "^2.4.5",
     "nock": "^7.2.2",
-    "nyc": "^7.0.0-alpha.3",
     "should": "^8.3.2",
     "sinon": "^1.17.3",
     "uglify-js": "^2.4.10"

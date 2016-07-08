@@ -1,7 +1,7 @@
 /*globals describe, beforeEach, afterEach, it*/
 import sinon        from 'sinon';
 import should       from 'should';
-import * as helpers from '../../src/helpers';
+import * as helpers from '../src/helpers';
 
 describe('ORM :: Helpers', () => {
   let sandbox;

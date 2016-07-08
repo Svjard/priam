@@ -3,9 +3,9 @@ import sinon from 'sinon';
 import should from 'should';
 import cassandra from 'cassandra-driver';
 import chalk from 'chalk';
-import Keyspace from '../../src/keyspace';
-import { SimpleStrategy } from '../../src/replication-strategies';
-import { ErrorHandler, errors } from '../../src/errors';
+import Keyspace from '../src/keyspace';
+import { SimpleStrategy } from '../src/replication-strategies';
+import { ErrorHandler, errors } from '../src/errors';
 
 const currentEnv = process.env.NODE_ENV;
 

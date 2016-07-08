@@ -24,6 +24,9 @@ before_script:
   - nohup bash -c webdriver-manager start 2>&1 &  # Protractor CI
   - sleep 1  # give server time to start
 
+script:
+  - npm run coverage
+
 after_failure:
   - cat /home/travis/build/Svjard/priam/npm-debug.log
 
