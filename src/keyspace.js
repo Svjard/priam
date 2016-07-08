@@ -9,7 +9,6 @@ import { ReplicationStrategy } from './replication-strategies';
 export default class Keyspace {
   /**
    * Cassandra keyspace representation for the ORM.
-   * @class Keyspace
    * @param {Client} client The instance of the Cassandra client
    * @param {string} name The name of the keyspace
    * @param {ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy}

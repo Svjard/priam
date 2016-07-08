@@ -16,7 +16,6 @@ const VALID_DEFINITION_FIELDS = [
 export default class Schema {
   /**
    * Schema representation for a table in Cassandra.
-   * @class
    * @param {Orm} orm The instance of the ORM
    * @param {!Object} definition The schema definition
    * @param {Object.<string, string>|!Object} definition.columns The set of columns for the schema
@@ -25,6 +24,7 @@ export default class Schema {
    *  can be represented by a grouped nested array
    * @param {Object.<string, string>} [definition.with] The WITH condition, i.e. table properties, for use in generating the table
    * @see {@link https://docs.datastax.com/en/cql/3.0/cql/cql_reference/create_table_r.html?scroll=reference_ds_v3f_vfk_xj__setting-a-table-property}
+   * @class Schema
    */
   constructor(orm, definition) {
     /* type-check */
@@ -471,9 +471,7 @@ export default class Schema {
         throw new errors.InvalidWithDefinition(`Invalid with property: ${property}.`);
       } else if (property === '$clustering_order_by') {
         const clusteringKey = this.clusteringKey();
-        console.log('value', value);
         _.each(value, (order, column) => {
-          console.log('c', order, column);
           if (!tableWithProperties.CLUSTERING_ORDER[order]) {
             throw new errors.InvalidWithDefinition(`Invalid with clustering order: ${order}.`);
           } else {

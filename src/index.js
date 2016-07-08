@@ -19,14 +19,12 @@ import * as validatorRecipes from './recipes/validators';
 
 _.mixin(require('lodash-inflection'));
 
-/**
- * Cassandra-based ORM to handle migrations, upgrades, and models.
- * @class
- */
 export default class Orm {
   /**
+   * Cassandra-based ORM to handle migrations, upgrades, and models.
+   *
    * @param {Object} options
-   * @constructor
+   * @class Orm
    */
   constructor(options) {
     this.ready = false;

@@ -1,6 +1,6 @@
 // Libraries
-import cassandra from 'cassandra-driver';
 import _ from 'lodash';
+import cassandra from 'cassandra-driver';
 // Modules
 import { errors } from './errors';
 import * as helpers from './helpers';

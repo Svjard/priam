@@ -15,7 +15,7 @@
     "build.dev": "cross-env NODE_ENV=production rimraf dist && node strip.js && uglifyjs ./build/* --output ./dist/priam.js",
     "coverage": "./node_modules/.bin/babel-node ./node_modules/isparta/bin/isparta cover --report lcov --report text --report html node_modules/mocha/bin/_mocha -- --compilers js:compiler.js test/*.js",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
-    "docs": "./node_modules/.bin/jsdoc --configure jsdoc.conf.json src/**/*.js",
+    "docs": "./node_modules/.bin/jsdoc --configure jsdoc.conf.json --recurse src",
     "lint": "eslint src",
     "clean": "rimraf coverage && rimraf compiled",
     "test": "cross-env NODE_ENV=test node_modules/mocha/bin/_mocha --compilers js:compiler.js test/*.js",
