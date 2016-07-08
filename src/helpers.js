@@ -61,8 +61,8 @@ export function isAnything(x) {
  * @memberOf helpers
  */
 export function isUUID(x) {
-  var pattern_uuid1 = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
-  return pattern_uuid1.test(x.toString());
+  var patternUuid1 = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
+  return patternUuid1.test(x.toString());
 }
 
 /**
@@ -75,13 +75,12 @@ export function isUUID(x) {
 export function isInet(x) {
   if (!_.isString(x)) {
     return false;
-  }
-  else {
-    const patt_ip4 = /^(25[0-5]|2[0-4]\d|[0-1]?\d?\d)(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}$/i;
-    const patt_ip6_1 = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/i;
-    const patt_ip6_2 = /^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)$/i;
-    const patt_ip6_3 = /^::ffff:(25[0-5]|2[0-4]\d|[0-1]?\d?\d)(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}$/i;
-    return patt_ip4.test(x) || patt_ip6_1.test(x) || patt_ip6_2.test(x) || patt_ip6_3.test(x);
+  } else {
+    const pattIp4 = /^(25[0-5]|2[0-4]\d|[0-1]?\d?\d)(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}$/i;
+    const pattIp6v1 = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/i;
+    const pattIp6v2 = /^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)$/i;
+    const pattIp6v3 = /^::ffff:(25[0-5]|2[0-4]\d|[0-1]?\d?\d)(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}$/i;
+    return pattIp4.test(x) || pattIp6v1.test(x) || pattIp6v2.test(x) || pattIp6v3.test(x);
   }
 }
 
@@ -107,9 +106,8 @@ export function isTuple(x) {
 export function isEqual(x, y) {
   if (_.isArray(x) || isPlainObject(x)) {
     return JSON.stringify(x) === JSON.stringify(y);
-  }
-  else {
-    return x == y;
+  } else {
+    return x === y;
   }
 }
 
@@ -129,7 +127,7 @@ export function uniq(array) {
     }
   });
 
-  return nm_.values(hash);
+  return _.values(hash);
 }
 
 /**
@@ -143,7 +141,7 @@ export function uniq(array) {
 export function without(array, value) {
   let newArray = [];
   _.each(array, (v, index) => {
-    if (!exports.isEqual(v, value)) {
+    if (!isEqual(v, value)) {
       newArray.push(v);
     }
   });

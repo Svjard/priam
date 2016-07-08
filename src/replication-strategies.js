@@ -1,5 +1,4 @@
 // Libraries
-import _ from 'lodash';
 import check from 'check-types';
 
 /**
@@ -33,9 +32,9 @@ export class ReplicationStrategy {
 export class SimpleStrategy extends ReplicationStrategy {
   constructor(replicationFactor) {
     super();
-
+    /* type-check */
     check.integer(replicationFactor) & check.positive(replicationFactor);
-
+    /* end-type-check */
     /**
      * The number of replicas of data on multiple nodes.
      *
@@ -62,7 +61,7 @@ export class SimpleStrategy extends ReplicationStrategy {
      */
     this.replicationFactor = replicationFactor;
   }
-  
+
   /**
    * Determines if the strategy as stored in Cassandra is equal to the current
    * instance of the strategy.
@@ -75,11 +74,12 @@ export class SimpleStrategy extends ReplicationStrategy {
    * @instance
    */
   equals(strategy) {
+    /* type-check */
     check.map(strategy, {
-      class: check.maybe.nonEmptyString,
-      replication_factor: check.maybe.nonEmptyString
+      class: check.assert.maybe.nonEmptyString,
+      replication_factor: check.assert.maybe.nonEmptyString
     });
-
+    /* end-type-check */
     if (strategy.class !== this.class) {
       return false;
     }
@@ -105,7 +105,7 @@ export class SimpleStrategy extends ReplicationStrategy {
    * @instance
    */
   toCassandra() {
-    return { 'class' : this.class, 'replication_factor': this.replicationFactor };
+    return { 'class': this.class, 'replication_factor': this.replicationFactor };
   }
 }
 
@@ -118,9 +118,9 @@ export class SimpleStrategy extends ReplicationStrategy {
 export class NetworkTopologyStrategy extends ReplicationStrategy {
   constructor(dataCenters) {
     super();
-
-    check.object(dataCenters);
-    
+    /* type-check */
+    check.assert.object(dataCenters);
+    /* end-type-check */
     /**
      * The number of replicas of data on multiple nodes.
      *
@@ -136,7 +136,7 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
       writable: false,
       value: 'org.apache.cassandra.locator.NetworkTopologyStrategy'
     });
-    
+
     /**
      * The map of datacenter names to the number of replicas of data on each
      * node in the data center.
@@ -148,7 +148,7 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
      */
     this.dataCenters = dataCenters;
   }
-  
+
   /**
    * Gets the replication factor for a given data center in the strategy.
    *
@@ -159,8 +159,9 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
    * @instance
    */
   getDataCenter(name) {
-    check.string(name);
-    
+    /* type-check */
+    check.assert.string(name);
+    /* end-type-check */
     return this.dataCenters[name];
   }
 
@@ -174,10 +175,11 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
    * @instance
    */
   setDataCenter(name, replicationFactor) {
-    check.nonEmptyString(name);
-    check.integer(replicationFactor) & check.positive(replicationFactor);
-
-    this.dataCenters[name] = factor;
+    /* type-check */
+    check.assert.nonEmptyString(name);
+    check.assert.integer(replicationFactor) & check.assert.positive(replicationFactor);
+    /* end-type-check */
+    this.dataCenters[name] = replicationFactor;
   }
 
   /**
@@ -192,11 +194,12 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
    * @instance
    */
   equals(strategy) {
+    /* type-check */
     check.map(strategy, {
-      class: check.maybe.nonEmptyString,
-      dataCenters: check.maybe.object
+      class: check.assert.maybe.nonEmptyString,
+      dataCenters: check.assert.maybe.object
     });
-
+    /* end-type-check */
     if (strategy.class !== this.class) {
       return false;
     }
@@ -225,7 +228,7 @@ export class NetworkTopologyStrategy extends ReplicationStrategy {
    * @instance
    */
   toCassandra() {
-    const cassandraObj = { 'class' : this.class };
+    const cassandraObj = { 'class': this.class };
     Object.key(this.dataCenters).forEach(n => {
       cassandraObj[n] = this.dataCenters[n];
     });

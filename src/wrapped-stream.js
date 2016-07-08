@@ -1,16 +1,16 @@
 // Libraries
 import _ from 'lodash';
 
-/**
- * Stream representation of a Cassandra streaming result set.
- * @class
- */
 export default class WrappedStream {
   /**
+   * Stream representation of a Cassandra streaming result set.
    * @param {Model} model The ORM model type
-   * @constructor
+   * @class
    */
   constructor(model) {
+    /**
+     *
+     */
     this.model = model;
     this.stream = null;
     this.on = {};
@@ -27,11 +27,10 @@ export default class WrappedStream {
     this.on[key] = () => {
       func.apply(this, arguments);
     };
-    
+
     if (this.stream) {
       return this.stream.on(key, this.on[key]);
-    }
-    else {
+    } else {
       return this;
     }
   }
@@ -55,8 +54,7 @@ export default class WrappedStream {
   pipe(dest, options) {
     if (this.stream) {
       this.stream.pipe(dest, options);
-    }
-    else {
+    } else {
       this.pipe = { dest: dest, options: options };
     }
     return dest;
@@ -70,7 +68,7 @@ export default class WrappedStream {
   _setStream(stream) {
     // set stream
     this.stream = stream;
-    
+
     // intercept chunk by overridding .add
     if (!(stream instanceof WrappedStream)) {
       const add = stream.add;
@@ -81,12 +79,12 @@ export default class WrappedStream {
         add.call(stream, chunk);
       };
     }
-    
+
     // apply on
     _.each(this.on, (func, key) => {
       stream.on(key, this.on[key]);
     });
-    
+
     // apply pipe
     if (this.pipe) {
       stream.pipe(this.pipe.dest, this.pipe.options);

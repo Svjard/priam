@@ -62,7 +62,7 @@ export const KEYWORDS = {
   inet      : { validator: helpers.isInet,        dbValidator: 'org.apache.cassandra.db.marshal.InetAddressType',   size: 0 },
   int       : { validator: helpers.isInteger,     dbValidator: 'org.apache.cassandra.db.marshal.Int32Type',         size: 0 },
   text      : { validator: _.isString,            dbValidator: 'org.apache.cassandra.db.marshal.UTF8Type',          size: 0 },
-  timestamp : { validator: helpers.isDatetime,    dbValidator: 'org.apache.cassandra.db.marshal.TimestampType',     size: 0 },
+  timestamp : { validator: helpers.isDateTime,    dbValidator: 'org.apache.cassandra.db.marshal.TimestampType',     size: 0 },
   timeuuid  : { validator: helpers.isUUID,        dbValidator: 'org.apache.cassandra.db.marshal.TimeUUIDType',      size: 0 },
   uuid      : { validator: helpers.isUUID,        dbValidator: 'org.apache.cassandra.db.marshal.UUIDType',          size: 0 },
   varchar   : { validator: _.isString,            dbValidator: 'org.apache.cassandra.db.marshal.UTF8Type',          size: 0 },
@@ -161,19 +161,16 @@ export function isValidValueType(orm, type, value) {
       const parts = split(e.contents);
       if (e.keyword === 'frozen') {
         return isValidValueType(orm, parts[0], value);
-      }
-      else if (!definition.validator(value)) {
+      } else if (!definition.validator(value)) {
         return false;
-      }
-      else if (e.keyword === 'map') {
+      } else if (e.keyword === 'map') {
         for (let key in value) {
           if (!isValidValueType(orm, parts[0], key) || !isValidValueType(orm, parts[1], value[key])) {
             return false;
           }
         }
         return true;
-      }
-      else if (e.keyword === 'tuple') {
+      } else if (e.keyword === 'tuple') {
         const length = parts.length;
         for (let i = 0; i < length; i++) {
           if (!isValidValueType(orm, parts[i], value[i])) {
@@ -181,8 +178,7 @@ export function isValidValueType(orm, type, value) {
           }
         }
         return true;
-      }
-      else {
+      } else {
         const length = value.length;
         for (let i = 0; i < length; i++) {
           if (!isValidValueType(orm, parts[0], value[i])) {
@@ -191,16 +187,13 @@ export function isValidValueType(orm, type, value) {
         }
         return true;
       }
-    }
-    else {
-      console.log('isValidValueType #3', definition.validator, value);
+    } else {
+      console.log('isValidValueType #3', e, e.keyword, definition, definition.validator, value);
       return definition.validator(value);
     }
-  }
-  else if (isUserDefinedType(orm, type)) {
+  } else if (isUserDefinedType(orm, type)) {
     return orm.getUserDefinedType(type).isValidValueTypeForSelf(value);
-  }
-  else {
+  } else {
     return false;
   }
 }

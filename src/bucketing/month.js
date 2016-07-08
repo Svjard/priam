@@ -4,7 +4,7 @@ import Orm from '../index';
 /**
  * Gets string representation of a javascript date object.
  *
- * @param {Date} date Javascript date object to convert 
+ * @param {Date} date Javascript date object to convert
  * @returns {string}
  * @memberOf bucketing
  */
@@ -39,11 +39,11 @@ export function now() {
  * @param {number} offset Offset in milliseconds
  * @returns {string}
  * @memberOf bucketing
- */  
+ */
 export function nowOffset(offset) {
   return offset(now(), offset);
 }
-  
+
 /**
  * Gets string representation of a timestamp plus an offset.
  *
@@ -61,8 +61,7 @@ export function offset(bucket, offset) {
     const years = Math.floor(offset / 12);
     parts[0] += years;
     parts[1] = offset % 12 + 1;
-  }
-  else if (offset < 0) {
+  } else if (offset < 0) {
     offset = offset + parts[1] - 1;
     const years = Math.ceil(offset / -12);
     parts[0] -= years;
