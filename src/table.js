@@ -15,12 +15,10 @@ function checkOptions(options) {
     & check.boolean(options.removeExtra) & check.boolean(options.addMissing) & check.boolean(options.ensureExists);
 }
 
-/**
- * Cassandra-based table representation in the ORM.
- * @class
- */
 export default class Table {
   /**
+   * Cassandra-based table representation in the ORM.
+   * @class
    * @param {Orm} orm The instance of the ORM
    * @param {string} name The name of the table
    * @param {Object} schema The replication class and parameters, {@link ReplicationStrategy} 
@@ -36,9 +34,11 @@ export default class Table {
    * @constructor
    */
   constructor(orm, name, schema, options) {
+    /* check-type */
     check.instanceStrict(orm, Orm);
     check.nonEmptyString(name);
     checkOptions(options);
+    /* end-check-type */
 
     this.orm = orm;
     this.name = name;

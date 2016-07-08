@@ -29,7 +29,6 @@ export default class Keyspace {
     check.boolean(durableWrites);
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
     /* end-type-check */
-    
     this.client = client;
     this.name = name;
     this.replication = replication;
@@ -60,7 +59,6 @@ export default class Keyspace {
     /* type-check */
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
     /* end-type-check */
-    
     options = _.extend({ alter: false }, this.options, options);
     
     // skip running
@@ -168,7 +166,6 @@ export default class Keyspace {
     /* type-check */
     options & check.object(options) & check.boolean(options.ifNotExists);
     /* end-type-check */
-
     options = _.extend({ ifNotExists: false }, options);
     
     const query = {
@@ -204,7 +201,6 @@ export default class Keyspace {
     /* type-check */
     options & check.object(options) & check.boolean(options.ifExists);
     /* end-type-check */
-
     options = _.extend({ ifExists: false }, options);
     
     let query = {
@@ -239,7 +235,6 @@ export default class Keyspace {
     check.instanceStrict(replication, ReplicationStrategy);
     check.boolean(durableWrites);
     /* end-type-check */
-
     const query = {
       query: 'ALTER KEYSPACE',
       params: [],

@@ -32,7 +32,6 @@ export default class Schema {
     check.assert.instanceStrict(orm, Orm);
     check.assert.object(definition);
     /* end-type-check */
-
     /**
      * @type {Object.<string, string>}
      * @name aliases
@@ -92,7 +91,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-    
     return !!this.definition.columns[column];
   }
 
@@ -111,7 +109,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     return types.baseType(this.orm, this.definition.columns[column].type);
   }
 
@@ -129,7 +126,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     if (this.definition.columns[column]) {
       return this.definition.columns[column].type;
     }
@@ -153,7 +149,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     return types.isValidValueType(this.orm, this.columnType(column), value);
   }
   
@@ -171,7 +166,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     if (this.definition.columns[column]) {
       return this.definition.columns[column].get;
     }
@@ -193,7 +187,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     if (this.definition.columns[column]) {
       return this.definition.columns[column].set;
     }
@@ -215,7 +208,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     if (this.definition.columns[column]) {
       return this.definition.columns[column].alias;
     }
@@ -303,7 +295,6 @@ export default class Schema {
     /* type-check */
     check.assert.string(column);
     /* end-type-check */
-
     return _.flatten(this.definition.key).indexOf(column) > -1;
   }
   
@@ -337,7 +328,6 @@ export default class Schema {
     /* type-check */
     check.assert.object(definition);
     /* end-type-check */
-
     _.each(definition, (value, key) => {
       if (VALID_DEFINITION_FIELDS.indexOf(key) === -1) {
         throw new errors.InvalidSchemaDefinitionKey(`Unknown schema definition key: ${key}`);
@@ -381,7 +371,6 @@ export default class Schema {
     /* type-check */
     check.assert.object(columns);
     /* end-type-check */
-
     _.each(columns, (definition, column) => {
       // normalize
       if (_.isString(definition)) {
@@ -454,7 +443,6 @@ export default class Schema {
     /* type-check */
     check.assert.array(key);
     /* end-type-check */
-
     _.each(key, (column, index) => {
       if (_.isArray(column)) {
         if (index != 0) {
@@ -492,7 +480,6 @@ export default class Schema {
     /* type-check */
     check.assert.object(properties);
     /* end-type-check */
-
     _.each(properties, (value, property) => {
       if (!tableWithProperties.PROPERTIES[property]) {
         throw new errors.InvalidWithDefinition(`Invalid with property: ${property}.`);
