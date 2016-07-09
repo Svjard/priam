@@ -12,8 +12,10 @@ import * as validator from 'validator';
  * @memberOf recipes.validators
  */
 export const email = {
-  validator: validator.isEmail,
-  message: (displayName) => { return i18n('errors.orm.validation.invalidEmailAddress', {field: displayName}); }
+  validator: (value, instance) => {
+    return _.isString(value) && validator.isEmail(value);
+  },
+  message: (displayName) => { return `${displayName} must be a valid email address.`; }
 };
 
 /**
@@ -23,9 +25,9 @@ export const email = {
  */
 export const password = {
   validator: (value, instance) => {
-    return validator.matches(value, /^(?=.*[a-zA-Z])(?=.*[0-9]).{6,}$/);
+    return _.isString(value) && validator.matches(value, /^(?=.*[a-zA-Z])(?=.*[0-9]).{6,}$/);
   },
-  message: (displayName) => { return i18n('errors.orm.validation.invalidPassword', {field: displayName}); }
+  message: (displayName) => { return `${displayName} must be at least 6 characters long and contain one number and one letter.`; }
 };
 
 /**
@@ -35,9 +37,9 @@ export const password = {
  */
 export const required = {
   validator: (value, instance) => {
-    return !validator.isNull(value);
+    return !!value;
   },
-  message: (displayName) => { return i18n('errors.orm.validation.required', {field: displayName}); }
+  message: (displayName) => { return `${displayName} is required.`; }
 };
 
 /**
@@ -59,7 +61,7 @@ export function isIn(values) {
     },
     message: (displayName) => {
       const displayNames = _.isArray(values) ? values : _.values(values);
-      return i18n('errors.orm.validation.notIn', {field: displayName, values: displayNames.join(', ')});
+      return `${displayName} must have one of these values: ${displayNames.join(', ')}.`;
     }
   }
 }
@@ -86,7 +88,7 @@ export function requiresOneOf(columns) {
     message: (displayName) => {
       let displayNames = _.values(columns);
       displayNames = _.without(displayNames, displayName);
-      return i18n('errors.orm.validation.requiredOneOf', {field: displayName, values: displayNames.join(', ')});
+      return `${displayName} or ${displayNames} is required.`;
     }
   }
 }
@@ -105,10 +107,10 @@ export function minLength(length) {
         return value.length >= length;
       }
       else {
-        return validator.isLength(value, length);
+        return _.isString(value) && validator.isLength(value, length);
       }
     },
-    message: (displayName) => { return i18n('errors.orm.validation.minLength', {field: displayName, length: length.toString()}); }
+    message: (displayName) => { return `${displayName} is too short (minimum is ${length.toString()} characters).`; }
   }
 }
 
@@ -126,10 +128,10 @@ export function maxLength(length) {
         return value.length <= length;
       }
       else {
-        return validator.isLength(value, 0, length);
+        return _.isString(value) && validator.isLength(value, 0, length);
       }
     },
-    message: (displayName) => { return i18n('errors.orm.validation.maxLength', {field: displayName, length: length.toString()}); }
+    message: (displayName) => { return `${displayName} is too long (maximum is ${length.toString()} characters).`; }
   }
 }
 
@@ -143,9 +145,9 @@ export function maxLength(length) {
 export function greaterThanOrEqualTo(number) {
   return {
     validator: (value, instance) => {
-      return value >= number;
+      return _.isNumber(value) && value >= number;
     },
-    message: (displayName) => { return i18n('errors.orm.validation.greaterThanOrEqualTo', {field: displayName, value: number.toString()}); }
+    message: (displayName) => { return `${displayName} is too small (minimum is ${number.toString()}).`; }
   }
 }
 
@@ -159,9 +161,9 @@ export function greaterThanOrEqualTo(number) {
 export function greaterThan(number) {
   return {
     validator: (value, instance) => {
-      return value > number;
+      return _.isNumber(value) && value > number;
     },
-    message: (displayName) => { return i18n('errors.orm.validation.greaterThan', {field: displayName, value: number.toString()}); }
+    message: (displayName) => { return `${displayName} is too small (must be greater than ${number.toString()}).`; }
   }
 }
 
@@ -175,9 +177,9 @@ export function greaterThan(number) {
 export function lessThanOrEqualTo(number) {
   return {
     validator: (value, instance) => {
-      return value <= number;
+      return _.isNumber(value) && value <= number;
     },
-    message: (displayName) => { return i18n('errors.orm.validation.lessThanOrEqualTo', {field: displayName, value: number.toString()}); }
+    message: (displayName) => { return `${displayName} is too big (maximum is ${number.toString()}).`; }
   }
 }
 
@@ -191,9 +193,9 @@ export function lessThanOrEqualTo(number) {
 export function lessThan(number) {
   return {
     validator: (value, instance) => {
-      return value < number;
+      return _.isNumber(value) && value < number;
     },
-    message: (displayName) => { return i18n('errors.orm.validation.lessThan', {field: displayName, value: number.toString()}); }
+    message: (displayName) => { return `${displayName} is too big (must be less than ${number.toString()}).`; }
   }
 }
 
