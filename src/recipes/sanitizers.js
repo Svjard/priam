@@ -16,8 +16,7 @@ import validator from 'validator';
 export function email(value, instance) {
   if (validator.isEmail(value)) {
     return validator.normalizeEmail(value);
-  }
-  else {
+  } else {
     return validator.trim(value).toLowerCase();
   }
 }
@@ -34,7 +33,7 @@ export function map(sanitizer) {
     return _.map(value, (v, index) => {
       return sanitizer(v, instance);
     });
-  }
+  };
 }
 
 /**

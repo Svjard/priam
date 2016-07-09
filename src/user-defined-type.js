@@ -17,17 +17,15 @@ function hexEncode(str) {
   return result
 }
 
-/**
- * Defines a Cassandra user-defined type
- * @class
- */
 export default class UserDefinedType {
   /**
-   * @constructor
+   * Defines a Cassandra user-defined type
+   *
    * @param {Orm} orm The instance of the ORM
    * @param {string} name The name of the user-defined type
    * @param {Object} definition The type definition as an associative array of field name to field types
    * @param {Object} options The options set from the Cassandra config, i.e. config.js
+   * @class UserDefinedType
    */
   constructor(orm, name, definition, options) {
     this.orm = orm;

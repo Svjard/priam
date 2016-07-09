@@ -5,7 +5,6 @@ import Promise from 'bluebird';
 // Modules
 import Bucketing from './bucketing';
 import { errors, ErrorHandler } from './errors';
-import * as helpers from './helpers';
 import Keyspace from './keyspace';
 import Model from './model';
 import Query from './query';
@@ -20,14 +19,12 @@ import * as validatorRecipes from './recipes/validators';
 
 _.mixin(require('lodash-inflection'));
 
-/**
- * Cassandra-based ORM to handle migrations, upgrades, and models.
- * @class
- */
 export default class Orm {
   /**
+   * Cassandra-based ORM to handle migrations, upgrades, and models.
+   *
    * @param {Object} options
-   * @constructor
+   * @class Orm
    */
   constructor(options) {
     this.ready = false;
@@ -38,10 +35,10 @@ export default class Orm {
       eachRow: [],
       stream: []
     };
-    
+
     this.userDefinedTypes = {};
     this.models = {};
-    
+
     this.keyspace = options.connection.keyspace;
     this.options = this.defaultOptions(options);
   }
@@ -105,7 +102,7 @@ export default class Orm {
 
     return timeUUID.getTime();
   }
-  
+
   /**
    * Converts the current javascript Date to a Cassandra timestamp.
    *
@@ -158,11 +155,10 @@ export default class Orm {
         },
         typeSpecificSetterName: (operation, columnName) => {
           let name = columnName.trim().replace(/\s/g, '_');
-          name = name.charAt(0).toUpperCase() + str.slice(1)();
-          if (operation == 'increment' || operation == 'decrement') {
+          name = name.charAt(0).toUpperCase() + name.slice(1)();
+          if (operation === 'increment' || operation === 'decrement') {
             return operation + name;
-          }
-          else {
+          } else {
             return operation + _.singularize(name);
           }
         },
@@ -185,46 +181,41 @@ export default class Orm {
         }
       }
     };
-  
+
     const mergedOptions = _.extend({}, _.omit(options, 'keyspace', 'logger', 'model', 'userDefinedType'));
-    
+
     if (options.keyspace) {
       mergedOptions.keyspace = _.extend(defaults.keyspace, _.omit(options.keyspace, 'ensureExists'));
       mergedOptions.keyspace.ensureExists = _.extend(defaults.keyspace.ensureExists, options.keyspace.ensureExists);
-    }
-    else {
+    } else {
       mergedOptions.keyspace = defaults.keyspace;
     }
-    
+
     if (options.logger) {
       mergedOptions.logger = _.extend(defaults.logger, options.logger);
-    }
-    else {
+    } else {
       mergedOptions.logger = defaults.logger;
     }
-    
+
     if (options.model) {
       mergedOptions.model = _.extend(_.omit(defaults.model, 'table'), _.omit(options.model, 'table'));
       if (options.model.table) {
         mergedOptions.model.table = {};
         mergedOptions.model.table.ensureExists = _.extend(defaults.model.table.ensureExists, options.model.table.ensureExists);
-      }
-      else {
+      } else {
         mergedOptions.model.table = defaults.model.table;
       }
-    }
-    else {
+    } else {
       mergedOptions.model = defaults.model;
     }
-    
+
     if (options.userDefinedType) {
       mergedOptions.userDefinedType = _.extend(defaults.userDefinedType, _.omit(options.userDefinedType, 'userDefinedType'));
       mergedOptions.userDefinedType.ensureExists = _.extend(defaults.userDefinedType.ensureExists, options.userDefinedType.ensureExists);
-    }
-    else {
+    } else {
       mergedOptions.userDefinedType = defaults.userDefinedType;
     }
-    
+
     return mergedOptions;
   }
 
@@ -238,14 +229,18 @@ export default class Orm {
   init(userDefinedTypes = {}) {
     // proccess user defined types
     this.processUserDefinedTypes(userDefinedTypes, this.options.userDefinedType);
-    
+
     // ensure keyspace exists
     return new Promise((resolve, reject) => {
       this.ensureKeyspace(this.options.keyspace)
         .then(() => {
           // set client
           this.client = new cassandra.Client(this.options.connection);
-          this.client.connect((err) => {
+          this.client.connect(err => {
+            if (err) {
+              reject(err);
+            }
+
             this.processQueryQueue(true);
 
             // ensure user defined types
@@ -255,12 +250,12 @@ export default class Orm {
                 this.processQueryQueue(false);
                 resolve();
               })
-              .catch((err) => {
+              .catch(err => {
                 reject(err);
               });
           });
         })
-        .catch((err) => {
+        .catch(err => {
           reject(err);
         });
     });
@@ -277,9 +272,8 @@ export default class Orm {
   processUserDefinedTypes(userDefinedTypes, options) {
     _.each(userDefinedTypes, (definition, name) => {
       if (this.userDefinedTypes[name]) {
-        throw new errors.DuplicateUserDefinedTypeError(i18n.t('errors.orm.DuplicateUserDefinedType', { name: name }));
-      }
-      else {
+        throw new errors.DuplicateUserDefinedTypeError(`User defined type with same name already added: ${name}.`);
+      } else {
         this.userDefinedTypes[name] = new UserDefinedType(this, name, definition, options);
       }
     });
@@ -299,7 +293,7 @@ export default class Orm {
     _.each(this.userDefinedTypes, (userDefinedType, index) => {
       promises.push(
         new Promise((resolve, reject) => {
-          userDefinedType.ensureExists((err) => {
+          userDefinedType.ensureExists(err => {
             if (err) {
               reject(err);
             } else {
@@ -309,12 +303,12 @@ export default class Orm {
         })
       );
     });
-    
+
     return new Promise((resolve, reject) => {
-      Promise.all(promises).then((descriptors) => {
+      Promise.all(promises).then(descriptors => {
         resolve();
-      }).catch((err) => {
-        reject(new errors.EnsureUserDefinedTypeExistsError(i18n.t('errors.orm.failedEnsuringUdt')));
+      }).catch(() => {
+        reject(new errors.EnsureUserDefinedTypeExistsError('Ensuring user defined types exist failed: rejected promises.'));
       });
     });
   }
@@ -344,12 +338,16 @@ export default class Orm {
     let connection = {
       contactPoints: this.options.connection.contactPoints
     };
-    
+
     // create temporary client
     // keyspace needs a client without a keyspace defined
     let client = new cassandra.Client({ contactPoints: connection.contactPoints });
     return new Promise((resolve, reject) => {
-      client.connect((err) => {
+      client.connect(err => {
+        if (err) {
+          return reject(err);
+        }
+
         const keyspace = new Keyspace(client, this.keyspace, options.replication, options.durableWrites, options);
         keyspace.ensureExists()
           .then(() => {
@@ -358,7 +356,7 @@ export default class Orm {
               .then(() => {
                 resolve();
               })
-              .catch((err) => {
+              .catch(err => {
                 ErrorHandler.logError(
                   err,
                   'Failed to shutdown the Cassandra client properly'
@@ -366,8 +364,8 @@ export default class Orm {
                 resolve();
               });
           })
-          .catch((err) => {
-            reject(new errors.EnsureKeyspaceExistsError(i18n.t('errors.orm.failedEnsuringKeyspace')));
+          .catch(err => {
+            reject(new errors.EnsureKeyspaceExistsError(`Error trying to ensure keyspace exists: ${err}.`));
           });
       });
     });
@@ -381,13 +379,14 @@ export default class Orm {
    * @public
    */
   handleShutdown(client) {
-    if (!(client instanceof cassandra.Client)) {
-      return Promise.reject(new errors.Keyspace.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeCassandra')));
-    }
-
+    /* type-check */
+    // !(client instanceof cassandra.Client)
+    /* end-type-check */
     return new Promise((resolve, reject) => {
-      client.shutdown((err) => {
-        if (err) reject(err);
+      client.shutdown(err => {
+        if (err) {
+          reject(err);
+        }
         resolve();
       });
     });
@@ -404,22 +403,21 @@ export default class Orm {
    */
   addModel(name, schema, validations, options) {
     if (this.models[name]) {
-      Promise.reject(new errors.DuplicateModelError(i18n.t('errors.orm.duplicateModelName')));
+      return Promise.reject(new errors.DuplicateModelError(`Model with same name already added: ${name}.`));
     }
-    else {
-      // default options
-      options = _.extend({}, this.options.model, options);
 
-      const schema = new Schema(this, schema, options.schema);
-      const validations = validations ? new Validations(schema, validations, options.validations) : null;
-      return new Promise((resolve, reject) => {
-        Model.compile(this, name, schema, validations, options)
-          .then((model) => {
-            this.models[name] = model;
-            resolve(model);
-          });
-      });
-    }
+    // default options
+    options = _.extend({}, this.options.model, options);
+
+    const _schema = new Schema(this, schema, options.schema);
+    const _validations = validations ? new Validations(_schema, validations, options.validations) : null;
+    return new Promise((resolve, reject) => {
+      Model.compile(this, name, _schema, _validations, options)
+        .then(model => {
+          this.models[name] = model;
+          resolve(model);
+        });
+    });
   }
 
   /**
@@ -431,7 +429,7 @@ export default class Orm {
   getModel(name) {
     return this.models[name];
   }
-  
+
   /**
    * Runs a given query against the ORM's client.
    *
@@ -447,11 +445,12 @@ export default class Orm {
       if (!this.ready) {
         this.addToQueryQueue('execute', arguments);
         resolve();
-      }
-      else {
-        // ErrorHandler.logInfo('Query: ' + query + ', Params: ' + params + ', Options: ' + options);
+      } else {
+        ErrorHandler.logInfo(`Query: ${query}, Parameters: ${params}, Context: ${JSON.stringify(options)}`);
         this.client.execute(query, params, options, (err, result) => {
-          if (err) return reject(err);
+          if (err) {
+            return reject(err);
+          }
           resolve(result);
         });
       }
@@ -472,9 +471,8 @@ export default class Orm {
    */
   eachRow(query, params, options, rowTransform, completeCallback) {
     if (!this.ready) {
-      this.addToQueryQueue.call(this, 'eachRow', arguments);
-    }
-    else {
+      this.addToQueryQueue('eachRow', arguments);
+    } else {
       this.client.eachRow(query, params, options, rowTransform, completeCallback);
     }
   }
@@ -500,9 +498,8 @@ export default class Orm {
 
     const stream = new WrappedStream(model);
     if (!this.ready) {
-      addToQueryQueue.call(this, 'stream', { stream: stream, args: [query, params, options] });
-    }
-    else {
+      this.addToQueryQueue('stream', { stream: stream, args: [query, params, options] });
+    } else {
       stream.setStream(this.client.stream(query, params, options));
     }
 
@@ -521,20 +518,17 @@ export default class Orm {
    *                                     is parameterized
    * @private
    */
-  _system_execute(query, params, options) {
+  _systemExecute(query, params, options) {
     return new Promise((resolve, reject) => {
       if (!this.client) {
         this.addToQueryQueue('system', arguments);
         resolve();
-      }
-      else {
+      } else {
         this.client.execute(query, params, options, (err, results) => {
           if (err) {
-            reject(err);
+            return reject(err);
           }
-          else {
-            resolve(results);
-          }
+          resolve(results);
         });
       }
     });
@@ -550,12 +544,10 @@ export default class Orm {
    */
   addToQueryQueue(action, args) {
     if (!this.queryQueue) {
-      throw new errors.QueryQueueAlreadyProcessedError(i18n.t('errors.orm.queryAlreadyProcessed'));
-    }
-    else if (action !== 'system' && action !== 'execute' && action !== 'eachRow' && action !== 'stream') {
-      throw new errors.InvalidQueryQueueActionError(i18n.t('errors.orm.invalidQueueAction'));
-    }
-    else {
+      throw new errors.QueryQueueAlreadyProcessedError('Cannot enqueue query. Queue already processed.');
+    } else if (action !== 'system' && action !== 'execute' && action !== 'eachRow' && action !== 'stream') {
+      throw new errors.InvalidQueryQueueActionError(`Invalid action: ${action}.`);
+    } else {
       this.queryQueue[action].push(args);
     }
   }
@@ -563,38 +555,34 @@ export default class Orm {
   /**
    * Processes all the current enqueued queries in the queue.
    *
-   * @param {boolean} systemOnly Flag indicating only to run basic queries through _system_execute
+   * @param {boolean} systemOnly Flag indicating only to run basic queries through _systemExecute
    * @private
    */
   processQueryQueue(systemOnly) {
     if (!this.queryQueue) {
-      throw new errors.QueryQueueAlreadyProcessedError(i18n.t('errors.orm.queryAlreadyProcessed'));
-    }
-    else {
+      throw new errors.QueryQueueAlreadyProcessedError('Cannot enqueue query. Queue already processed.');
+    } else {
       _.each(this.queryQueue, (queue, action) => {
         _.each(queue, (query, index) => {
           if (action === 'system') {
-            this._system_execute(query);
+            this._systemExecute(query);
           }
 
           if (!systemOnly) {
             if (action === 'execute') {
               this.execute(query);
-            }
-            else if (action === 'eachRow') {
+            } else if (action === 'eachRow') {
               this.eachRow(query);
-            }
-            else if (action === 'stream') {
+            } else if (action === 'stream') {
               query.stream.setStream(this.client.stream.apply(this, query.args));
             }
           }
         });
       });
-      
+
       if (systemOnly) {
         this.queryQueue.system = [];
-      }
-      else {
+      } else {
         this.queryQueue = null;
       }
     }

@@ -56,6 +56,10 @@ describe('ORM :: Schema', () => {
     should(schema.aliases.emailAddress).equal('email');
     should(schema.isAlias('emailAddress')).equal(true);
     should(schema.isAlias('invalid')).equal(false);    
+    should(schema.columnFromAlias('emailAddress')).equal('email');
+    should(schema.columnFromAlias('invalid')).equal(null);
+    should(schema.columnAlias('email')).equal('emailAddress');
+    should(schema.columnAlias('invalid')).equal(null);
     should(schema.columns()).deepEqual(Object.keys(BASE_SCHEMA.columns));
     Object.keys(BASE_SCHEMA.columns).forEach(key => {
       should(schema.isColumn(key)).equal(true);
@@ -75,11 +79,92 @@ describe('ORM :: Schema', () => {
     });
     should(schema.isColumn('invalid')).equal(false);
     should(schema.columnType('invalid')).equal(null);
+    should(schema.columnGetter('email')).not.equal(null);
+    should(schema.columnGetter('invalid')).equal(null);
+    should(schema.columnSetter('email')).not.equal(null);
+    should(schema.columnSetter('invalid')).equal(null); 
+    should(schema.columnSetter('invalid')).equal(null);
     should(schema.partitionKey()).equal('id');
+    should(schema.with()).equal(null);
+    done();
+  });
+
+  it('should correctly check types for columns', (done) => {
+    let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), BASE_SCHEMA);
+    should(schema.isValidValueTypeForColumn('email', 4)).equal(false);
+    should(schema.isValidValueTypeForColumn('email', 'abc')).equal(true);
+    should(schema.isValidValueTypeForColumn('ctime', new Date().getTime())).equal(false);
+    should(schema.isValidValueTypeForColumn('ctime', '4')).equal(true);
+    should(schema.isValidValueTypeForColumn('ctime', '1/1/2016 11:10')).equal(true);
+    should(schema.isValidValueTypeForColumn('ctime', new Date())).equal(true);
+    should(schema.isValidValueTypeForColumn('id', '125451')).equal(false);
+    should(schema.isValidValueTypeForColumn('id', '3635cf47-9dc5-4bf9-8d08-b43a3252e5ee')).equal(true);
+    should(schema.isValidValueTypeForColumn('tags', '1,2,3,4')).equal(false);
+    should(schema.isValidValueTypeForColumn('tags', ['1','2','3','4'])).equal(true);
+    done();
+  });
+
+  it('should handle composite keys correctly', (done) => {
+    const newSchema = _.cloneDeep(BASE_SCHEMA);
+    newSchema.key = [['name', 'email'], 'id'];
+    let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+
+    should(schema.partitionKey()).deepEqual(['name', 'email']);
+    should(schema.clusteringKey()).equal('id');
+    
+    should(schema.isKeyColumn('name')).equal(true);
+    should(schema.isKeyColumn('email')).equal(true);
+    should(schema.isKeyColumn('id')).equal(true);
+
+    newSchema.key = [['name', 'email'], 'id', 'ctime', 'utime'];
+    schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+    should(schema.clusteringKey()).deepEqual(['id', 'ctime', 'utime']);
+
+    newSchema.key = [['name', 'email']];
+    schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+    should(schema.clusteringKey()).equal(false);
+    
+    done();
+  });
+
+  it('should provide correctly mixin with a Model', (done) => {
+    done();
+  });
+
+  it('should identify counter type correctly', (done) => {
+    const newSchema = _.cloneDeep(BASE_SCHEMA);
+    newSchema.columns.id = 'counter';
+    let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+
+    should(schema.isCounterColumnFamily).equal(true);
     done();
   });
 
   describe('+ Invalid Definition', () => {
+    it('should throw an error if invalid field is found in the defintion', (done) => {
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        newSchema.invalid = {};
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidSchemaDefinitionKey');
+        should(err.message).equal('Unknown schema definition key: invalid.');
+        done();
+      }
+    });
+
+    it('should throw an error if key field does not exist', (done) => {
+      try {
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), _.omit(BASE_SCHEMA, 'key'));
+      }
+      catch(err) {
+        should(err.errorType).equal('MissingDefinition');
+        should(err.message).equal('Schema must define a key.');
+        done();
+      }
+    });
+
     it('should throw an error if columns does not exist', (done) => {
       try {
         let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), _.omit(BASE_SCHEMA, 'columns'));
@@ -99,6 +184,19 @@ describe('ORM :: Schema', () => {
       }
       catch(err) {
         should(err.message).equal('Invalid object');
+        done();
+      }
+    });
+
+    it('should throw an error if column `type` does not exist', (done) => {
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        delete newSchema.columns.email.type;
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidTypeDefinition');
+        should(err.message).equal('Type must be defined in column: email schema.');
         done();
       }
     });
@@ -199,6 +297,19 @@ describe('ORM :: Schema', () => {
       }
     });
 
+    it('should throw an error if key contains an invalid column in a composite key', (done) => {
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        newSchema.key = [['id', 'name'], 'invalid'];
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidKeyDefinition');
+        should(err.message).equal('Key refers to invalid column.');
+        done();
+      }
+    });
+
     it('should throw an error if key contains a non-string', (done) => {
       try {
         const newSchema = _.cloneDeep(BASE_SCHEMA);
@@ -253,36 +364,58 @@ describe('ORM :: Schema', () => {
     });
 
     it('should throw an error if $clustering_order_by property is invalid', (done) => {
-      should(1).equal(1);
-      done();
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        newSchema.with = { $compact_storage: true, $clustering_order_by: ['invalid'] };
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidWithDefinition');
+        should(err.message).equal('Invalid with clustering order: invalid.');
+        done();
+      }
     });
-  });
 
-  it('should handle composite keys correctly', (done) => {
-    const newSchema = _.cloneDeep(BASE_SCHEMA);
-    newSchema.key = [['name', 'email'], 'id'];
-    let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+    it('should throw an error if $clustering_order_by property is valid but no clustering key provided', (done) => {
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        newSchema.key = [['id', 'name']];
+        newSchema.with = { $compact_storage: true, $clustering_order_by: {name: '$asc'} };
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidWithDefinition');
+        should(err.message).equal('Invalid with clustering column: name.');
+        done();
+      }
+    });
 
-    should(schema.partitionKey()).deepEqual(['name', 'email']);
-    should(schema.clusteringKey()).equal('id');
-    
-    should(schema.isKeyColumn('name')).equal(true);
-    should(schema.isKeyColumn('email')).equal(true);
-    should(schema.isKeyColumn('id')).equal(true);
-    done();
-  });
+    it('should throw an error if $clustering_order_by property is valid but clustering key does not contain column', (done) => {
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        newSchema.key = [['id', 'ctime'], 'email', 'utime'];
+        newSchema.with = { $compact_storage: true, $clustering_order_by: {name: '$asc'} };
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidWithDefinition');
+        should(err.message).equal('Invalid with clustering column: name.');
+        done();
+      }
+    });
 
-  it('should provide correct get/set functions on properties', (done) => {
-    should(1).equal(1);
-    done();
-  }); // TODO -- expand this out
-
-  it('should identify counter type correctly', (done) => {
-    const newSchema = _.cloneDeep(BASE_SCHEMA);
-    newSchema.columns.id = 'counter';
-    let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
-
-    should(schema.isCounterColumnFamily).equal(true);
-    done();
+    it('should throw an error if $clustering_order_by property is valid but clustering key does is not equal to the column', (done) => {
+      try {
+        const newSchema = _.cloneDeep(BASE_SCHEMA);
+        newSchema.key = [['id', 'ctime'], 'email'];
+        newSchema.with = { $compact_storage: true, $clustering_order_by: {name: '$asc'} };
+        let schema = new Schema(new Orm({ connection: { keyspace: 'test' } }), newSchema);
+      }
+      catch(err) {
+        should(err.errorType).equal('InvalidWithDefinition');
+        should(err.message).equal('Invalid with clustering column: name.');
+        done();
+      }
+    });
   });
 });

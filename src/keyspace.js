@@ -4,16 +4,14 @@ import check from 'check-types';
 import _ from 'lodash';
 // Modules
 import { errors, ErrorHandler } from './errors';
-import * as helpers from './helpers';
 import { ReplicationStrategy } from './replication-strategies';
 
 export default class Keyspace {
   /**
    * Cassandra keyspace representation for the ORM.
-   * @class Keyspace
    * @param {Client} client The instance of the Cassandra client
    * @param {string} name The name of the keyspace
-   * @param {ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy} 
+   * @param {ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy}
    * @param {boolean} durableWrites Flag indicating if durable writes is set
    * @param {Object} [options] The options set for the keyspace
    * @param {boolean} [options.ensureExists] Flag indicating whether or not to run the creation/update of the
@@ -29,10 +27,40 @@ export default class Keyspace {
     check.boolean(durableWrites);
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
     /* end-type-check */
+    /**
+     * @type {!Object}
+     * @name client
+     * @public
+     * @memberOf Keyspace
+     */
     this.client = client;
+    /**
+     * @type {!Object}
+     * @name client
+     * @public
+     * @memberOf Keyspace
+     */
     this.name = name;
+    /**
+     * @type {ReplicationStrategy}
+     * @name replication
+     * @public
+     * @memberOf Keyspace
+     */
     this.replication = replication;
+    /**
+     * @type {boolean}
+     * @name durableWrites
+     * @public
+     * @memberOf Keyspace
+     */
     this.durableWrites = durableWrites;
+    /**
+     * @type {!Object}
+     * @name options
+     * @public
+     * @memberOf Keyspace
+     */
     this.options = options || {};
   }
 
@@ -60,7 +88,7 @@ export default class Keyspace {
     check.object(options) & check.boolean(options.ensureExists) & check.boolean(options.alter);
     /* end-type-check */
     options = _.extend({ alter: false }, this.options, options);
-    
+
     // skip running
     if (!_.isUndefined(options.run) && !options.run) {
       ErrorHandler.logWarn(`Ensure keyspace skipped: ${this.name}.`);
@@ -76,28 +104,26 @@ export default class Keyspace {
 
           if (result.rows.length === 0) {
             ErrorHandler.logWarn(`Creating keyspace: ${this.name}.`);
-            
+
             this.create({ ifNotExists: true })
               .then(() => { resolve(); })
               .catch(err => {
                 reject(new errors.CreateError(`Create keyspace failed: ${err}.`));
               });
-          }
-          // compare schema to existing keyspace
-          else {
+          } else {
             const row = result.rows[0];
             let differentReplicationStrategy = false;
 
             if (!this.replication.equals(row.replication)) {
               differentReplicationStrategy = true;
             }
-            
+
             // diff durable writes
             let differentDurableWrites = false;
             if (row.durable_writes !== this.durableWrites) {
               differentDurableWrites = true;
             }
-            
+
             // log
             if (differentReplicationStrategy) {
               ErrorHandler.logWarn(`Different replication strategy found for existing keyspace: ${this.name}.`);
@@ -106,18 +132,17 @@ export default class Keyspace {
             if (differentDurableWrites) {
               ErrorHandler.logWarn(`Different durable writes value found for existing keyspace: ${this.name}.`);
             }
-            
+
             // fix
             if (options.alter && (differentReplicationStrategy || differentDurableWrites)) {
               ErrorHandler.logWarn('Altering keyspace to match schema...');
-              
+
               this.alter(this.replication, this.durableWrites)
                 .then(() => { resolve(); })
                 .catch(err => {
                   reject(new errors.FixError(`Alter keyspace failed: ${err}.`));
                 });
-            }
-            else {
+            } else {
               resolve();
             }
           }
@@ -167,22 +192,22 @@ export default class Keyspace {
     options & check.object(options) & check.boolean(options.ifNotExists);
     /* end-type-check */
     options = _.extend({ ifNotExists: false }, options);
-    
+
     const query = {
       query: 'CREATE KEYSPACE',
       params: [],
       prepare: true
     };
-    
+
     if (options.ifNotExists) {
       query.query = `${query.query} IF NOT EXISTS`;
     }
-    
+
     this.concatBuilders([this.buildKeyspaceName, this.buildReplication, this.buildDurableWrites], query);
-    
+
     return this.execute(query);
   }
-  
+
   /**
    * Drops an existing keyspace from the Cassandra database.
    *
@@ -202,26 +227,26 @@ export default class Keyspace {
     options & check.object(options) & check.boolean(options.ifExists);
     /* end-type-check */
     options = _.extend({ ifExists: false }, options);
-    
+
     let query = {
       query: 'DROP KEYSPACE',
       params: [],
       prepare: true
     };
-    
+
     if (options.ifExists) {
       query.query = `${query.query} IF EXISTS`;
     }
-    
+
     this.concatBuilders([this.buildKeyspaceName], query);
-    
+
     return this.execute(query);
   }
 
   /**
    * Alters an existing keyspace from the Cassandra database.
    *
-   * @param {?ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy} 
+   * @param {?ReplicationStrategy} replication The replication class and parameters, {@link ReplicationStrategy}
    * @param {?boolean} durableWrites Flag indicating if durable writes is set
    * @return {Promise} The result of running the ALTER KEYSPACE statement
    * @public
@@ -240,9 +265,9 @@ export default class Keyspace {
       params: [],
       prepare: true
     };
-    
-    this.concatBuilders.call(this, [this.buildKeyspaceName], query);
-    
+
+    this.concatBuilders([this.buildKeyspaceName], query);
+
     let clause = '';
     if (!_.isNull(replication)) {
       clause = `${clause} WITH REPLICATION = ${JSON.stringify(this.replication.toCassandra()).replace(/"/g, "'")}`;
@@ -251,14 +276,13 @@ export default class Keyspace {
     if (!_.isNull(durableWrites)) {
       if (clause.length > 0) {
         clause = `${clause} AND`;
-      }
-      else {
+      } else {
         clause = `${clause} WITH`;
       }
       clause = `${clause} DURABLE_WRITES = ${durableWrites}`;
     }
     query.query = `${query.query}${clause}`;
-    
+
     return this.execute(query);
   }
 

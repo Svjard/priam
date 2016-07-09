@@ -2,8 +2,7 @@
 import _ from 'lodash';
 import check from 'check-types';
 // Modules
-import { errors, errorHandler } from './errors';
-import * as helpers from './helpers';
+import { ErrorHandler, errors } from './errors';
 import Orm from './index';
 import * as types from './types';
 import tableWithProperties from './table-with-properties';
@@ -17,15 +16,15 @@ const VALID_DEFINITION_FIELDS = [
 export default class Schema {
   /**
    * Schema representation for a table in Cassandra.
-   * @class
    * @param {Orm} orm The instance of the ORM
-   * @param {!Object} definition The schema definition 
+   * @param {!Object} definition The schema definition
    * @param {Object.<string, string>|!Object} definition.columns The set of columns for the schema
    *  which may be a simple column name mapped to its type, or an object containing the type, optional alias, and optional get/set methods
    * @param {Array<string|Array<string>>} definition.key The Table's primary key, composite keys
    *  can be represented by a grouped nested array
    * @param {Object.<string, string>} [definition.with] The WITH condition, i.e. table properties, for use in generating the table
    * @see {@link https://docs.datastax.com/en/cql/3.0/cql/cql_reference/create_table_r.html?scroll=reference_ds_v3f_vfk_xj__setting-a-table-property}
+   * @class Schema
    */
   constructor(orm, definition) {
     /* type-check */
@@ -60,7 +59,7 @@ export default class Schema {
      * @memberOf Schema
      */
     this.isCounterColumnFamily = false;
-    
+
     this.validateAndNormalizeDefinition(definition);
   }
 
@@ -95,7 +94,7 @@ export default class Schema {
   }
 
   /**
-   * Returns the base type which will strip out any keywords such as 'frozen' 
+   * Returns the base type which will strip out any keywords such as 'frozen'
    * from the type definition.
    *
    * @param {string} column The name of the column
@@ -151,7 +150,7 @@ export default class Schema {
     /* end-type-check */
     return types.isValidValueType(this.orm, this.columnType(column), value);
   }
-  
+
   /**
    * Utility method to get the `get` method on a column's definition.
    *
@@ -169,10 +168,10 @@ export default class Schema {
     if (this.definition.columns[column]) {
       return this.definition.columns[column].get;
     }
-    
+
     return null;
   }
-  
+
   /**
    * Utility method to get the `set` method on a column's definition.
    *
@@ -193,7 +192,7 @@ export default class Schema {
 
     return null;
   }
-  
+
   /**
    * Utility method to get the column's alias, if one exists.
    *
@@ -214,7 +213,7 @@ export default class Schema {
 
     return null;
   }
-  
+
   /**
    * Identifies whether a given alias matches the alias for a column
    * in the schema.
@@ -229,7 +228,7 @@ export default class Schema {
   isAlias(alias) {
     return !!this.aliases[alias];
   }
-  
+
   /**
    * Utility method to get the column name matching a given alias, if one exists.
    *
@@ -241,9 +240,9 @@ export default class Schema {
    * @instance
    */
   columnFromAlias(alias) {
-    return this.aliases[alias];
+    return this.aliases[alias] || null;
   }
-  
+
   /**
    * Utility method to get the partition key defined for this schema, i.e. the
    * primary key for the table
@@ -257,7 +256,7 @@ export default class Schema {
   partitionKey() {
     return this.definition.key[0];
   }
-  
+
   /**
    * Utility method to get the key used for clustering for this schema.
    *
@@ -272,11 +271,9 @@ export default class Schema {
     const key = _.slice(this.definition.key, 1);
     if (key.length > 1) {
       return key;
-    }
-    else if (key.length === 1) {
+    } else if (key.length === 1) {
       return key[0];
-    }
-    else {
+    } else {
       return false;
     }
   }
@@ -297,7 +294,7 @@ export default class Schema {
     /* end-type-check */
     return _.flatten(this.definition.key).indexOf(column) > -1;
   }
-  
+
   /**
    * Utility method to get the WITH condition used to generate the table.
    *
@@ -309,11 +306,11 @@ export default class Schema {
    * @instance
    */
   with() {
-    return this.definition.with;
+    return this.definition.with || null;
   }
 
   /**
-   * Validates the schema definition object. 
+   * Validates the schema definition object.
    *
    * @param {!Object} definition
    * @private
@@ -330,31 +327,29 @@ export default class Schema {
     /* end-type-check */
     _.each(definition, (value, key) => {
       if (VALID_DEFINITION_FIELDS.indexOf(key) === -1) {
-        throw new errors.InvalidSchemaDefinitionKey(`Unknown schema definition key: ${key}`);
+        throw new errors.InvalidSchemaDefinitionKey(`Unknown schema definition key: ${key}.`);
       }
     });
-    
+
     if (!definition.columns) {
       throw new errors.MissingDefinition('Schema must define columns.');
-    }
-    else {
+    } else {
       this.validateAndNormalizeColumns(definition.columns);
     }
-    
+
     if (!definition.key) {
       throw new errors.MissingDefinition('Schema must define a key.');
-    }
-    else {
+    } else {
       this.validateAndNormalizeKey(definition.key);
     }
-    
+
     if (definition.with) {
       this.validateAndNormalizeWith(definition.with);
     }
   }
-  
+
   /**
-   * Validates the column definitions. 
+   * Validates the column definitions.
    *
    * @param {!Object} columns
    * @private
@@ -377,58 +372,52 @@ export default class Schema {
         definition = { type: definition };
         columns[column] = definition;
       }
-      
+
       /* type-check */
       check.assert.object(definition);
       /* end-type-check */
-      
+
       if (!definition.type) {
         throw new errors.InvalidTypeDefinition(`Type must be defined in column: ${column} schema.`);
       }
-      
+
       _.each(definition, (value, key) => {
         // type
         if (key === 'type') {
           if (!value || !_.isString(value)) {
             throw new errors.InvalidTypeDefinition(`Type: ${value} should be a string in column: ${column} schema.`);
-          }
-          else {
+          } else {
             definition.type = value = types.sanitize(value);
             if (!types.isValidType(this.orm, value)) {
               throw new errors.InvalidTypeDefinition(`Invalid type: ${value} in column: ${column} schema.`);
             }
-            
+
             // mark counter column family
             if (value === 'counter') {
               this.isCounterColumnFamily = true;
             }
           }
-        }
-        else if (key === 'set' || key === 'get') {
+        } else if (key === 'set' || key === 'get') {
           if (value && !_.isFunction(value)) {
             throw new errors.InvalidGetterSetterDefinition(`Setter / getters should be functions in column: ${column} schema.`);
           }
-        }
-        else if (key === 'alias') {
+        } else if (key === 'alias') {
           if (value && !_.isString(value)) {
             throw new errors.InvalidAliasDefinition(`Alias should be a string in column: ${column} schema.`);
-          }
-          else if (this.aliases[value] || columns[value]) {
+          } else if (this.aliases[value] || columns[value]) {
             throw new errors.InvalidAliasDefinition(`Alias conflicts with another alias or column name in column: ${column} schema.`);
-          }
-          else {
+          } else {
             this.aliases[value] = column;
           }
-        }
-        else {
+        } else {
           throw new errors.InvalidColumnDefinitionKey(`Invalid column definition key: ${key} in column: ${column} schema.`);
         }
       });
     });
   }
-  
+
   /**
-   * Validates the partition key definition. 
+   * Validates the partition key definition.
    *
    * @param {Array<string|Array<string>> key
    * @private
@@ -445,28 +434,25 @@ export default class Schema {
     /* end-type-check */
     _.each(key, (column, index) => {
       if (_.isArray(column)) {
-        if (index != 0) {
+        if (index !== 0) {
           throw new errors.InvalidKeyDefinition('Composite key can only appear at beginning of key definition.');
-        }
-        else {
+        } else {
           _.each(column, (c, i) => {
             if (!this.isColumn(c)) {
               throw new errors.InvalidKeyDefinition('Key refers to invalid column.');
             }
           });
         }
-      }
-      else if (!_.isString(column)) {
+      } else if (!_.isString(column)) {
         throw new errors.InvalidType('Type should be a string.');
-      }
-      else if (!this.isColumn(column)) {
+      } else if (!this.isColumn(column)) {
         throw new errors.InvalidKeyDefinition('Key refers to invalid column.');
       }
     });
   }
- 
+
   /**
-   * Validates the WITH, table properties, definition. 
+   * Validates the WITH, table properties, definition.
    *
    * @param {Object.<string, !Object> properties
    * @private
@@ -483,15 +469,13 @@ export default class Schema {
     _.each(properties, (value, property) => {
       if (!tableWithProperties.PROPERTIES[property]) {
         throw new errors.InvalidWithDefinition(`Invalid with property: ${property}.`);
-      }
-      else if (property === '$clustering_order_by') {
+      } else if (property === '$clustering_order_by') {
         const clusteringKey = this.clusteringKey();
         _.each(value, (order, column) => {
           if (!tableWithProperties.CLUSTERING_ORDER[order]) {
             throw new errors.InvalidWithDefinition(`Invalid with clustering order: ${order}.`);
-          }
-          else {
-            if (!clusteringKey || (_.isArray(clusteringKey) && indexOf(clusteringKey, column) === -1) || clusteringKey !== column) {
+          } else {
+            if (!clusteringKey || (_.isArray(clusteringKey) && _.indexOf(clusteringKey, column) === -1) || clusteringKey !== column) {
               throw new errors.InvalidWithDefinition(`Invalid with clustering column: ${column}.`);
             }
           }
@@ -499,7 +483,7 @@ export default class Schema {
       }
     });
   }
-  
+
   /**
    * Utility function to mixin model attributes based on the schema definition.
    *
@@ -509,7 +493,7 @@ export default class Schema {
     this.mixinGettersAndSetters(model);
     this.mixinTypeSpecificSetters(model);
   }
-  
+
   /**
    * Utility function to add to a model get/set functions based on the columns
    * in the definition.
@@ -526,7 +510,7 @@ export default class Schema {
       }
 
       this.defineGetterSetter(model, name, column);
-      
+
       // alias
       const alias = this.columnAlias(column);
       if (alias) {
@@ -540,7 +524,7 @@ export default class Schema {
       }
     });
   }
-  
+
   /**
    * Setups an attribute on the model which matches the column name
    * with basic get and set capabilities.
@@ -557,7 +541,7 @@ export default class Schema {
       }
     });
   }
-  
+
   /**
    * Provides specific modifiers for attributes added to the model
    * based on the type.
@@ -569,14 +553,11 @@ export default class Schema {
       const type = this.baseColumnType(column);
       if (type === 'list') {
         operations = ['append', 'prepend', 'remove', 'inject'];
-      }
-      else if (type === 'set') {
+      } else if (type === 'set') {
         operations = ['add', 'remove'];
-      }
-      else if (type === 'map') {
+      } else if (type === 'map') {
         operations = ['inject', 'remove'];
-      }
-      else if (type === 'counter') {
+      } else if (type === 'counter') {
         operations = ['increment', 'decrement'];
       }
 
@@ -589,7 +570,7 @@ export default class Schema {
             name = 'specific_' + name;
             ErrorHandler.logWarn(`Defining setter as ${name}.`);
           }
-          
+
           // alias
           const alias = this.columnAlias(column);
           let aliasName = false;
@@ -601,23 +582,22 @@ export default class Schema {
               ErrorHandler.logWarn(`Defining setter as ${name}.`);
             }
           }
-          
+
           if (operation === 'inject') {
             model.prototype[name] = (key, value) => {
               this.inject(column, key, value);
             };
-            
+
             if (alias) {
               model.prototype[aliasName] = (key, value) => {
                 this.inject(column, key, value);
               };
             }
-          }
-          else {
+          } else {
             model.prototype[name] = (value) => {
               this[operation](column, value);
             };
-            
+
             if (alias) {
               model.prototype[aliasName] = (value) => {
                 this[operation](column, value);

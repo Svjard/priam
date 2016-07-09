@@ -31,7 +31,7 @@ export default class Table {
    * @param {boolean} [options.addMissing] Flag indicating whether to add missing columns to the table
    * @param {boolean} [options.ensureExists] Flag indicating whether or not to run the creation/update of the
    *   table
-   * @constructor
+   * @constructor Table
    */
   constructor(orm, name, schema, options) {
     /* type-check */

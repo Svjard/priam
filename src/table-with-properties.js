@@ -1,10 +1,10 @@
 export default {
   PROPERTIES: {
-    '$clustering_order_by' : 'CLUSTERING ORDER BY',
-    '$compact_storage' : 'COMPACT STORAGE'
+    '$clustering_order_by': 'CLUSTERING ORDER BY',
+    '$compact_storage': 'COMPACT STORAGE'
   },
   CLUSTERING_ORDER: {
-    '$asc' : 'ASC',
-    '$desc' : 'DESC'
+    '$asc': 'ASC',
+    '$desc': 'DESC'
   }
 };

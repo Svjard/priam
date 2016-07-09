@@ -1,6 +1,6 @@
+// Libraries
 import _ from 'lodash';
 import chalk from 'chalk';
-import path from 'path';
 import Promise from 'bluebird';
 
 function compileErrors(namespace, errors) {
@@ -109,7 +109,7 @@ export class ErrorHandler {
   static logWarn(warn, context) {
     if (process.env.NODE_ENV === 'development' ||
         process.env.NODE_ENV === 'staging') {
-        warn = warn || 'no message supplied';
+      warn = warn || 'no message supplied';
       let msgs = [chalk.yellow('\nWarning:', warn), '\n'];
 
       if (context) {
@@ -155,7 +155,7 @@ export class ErrorHandler {
         err = 'An unknown error occurred.';
       }
     }
-    
+
     // TODO: Logging framework hookup
     // Eventually we'll have better logging which will know about envs
     if ((process.env.NODE_ENV === 'development' ||
