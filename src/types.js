@@ -154,10 +154,8 @@ export function isValidType(orm, type) {
 export function isValidValueType(orm, type, value) {
   const e = extract(type);
   const definition = KEYWORDS[e.keyword];
-  console.log('isValidValueType #1', type, value, e, definition);
   if (definition) {
     if (e.contents) {
-      console.log('isValidValueType #2', e.contents);
       const parts = split(e.contents);
       if (e.keyword === 'frozen') {
         return isValidValueType(orm, parts[0], value);
@@ -188,7 +186,6 @@ export function isValidValueType(orm, type, value) {
         return true;
       }
     } else {
-      console.log('isValidValueType #3', e, e.keyword, definition, definition.validator, value);
       return definition.validator(value);
     }
   } else if (isUserDefinedType(orm, type)) {

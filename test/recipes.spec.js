@@ -178,6 +178,55 @@ describe('ORM :: Recipes', () => {
       should(f.message('Age')).equal('Age is too big (must be less than 2).');
       done();
     });
+
+    it('should validate value if conditional is true', (done) => {
+      let istrue = (v, orm) => {
+        return true;
+      }
+
+      let f = validators.validateIf(istrue, validators.minLength(2));
+      should(f.validator('cdw')).equal(true);
+      should(f.validator('c', null)).equal(false);
+      let msgs = f.message('Age');
+      should(msgs.length).equal(1);
+      should(msgs[0]).equal('Age is too short (minimum is 2 characters).');
+      
+      let isfalse = (v, orm) => {
+        return false;
+      };
+      f = validators.validateIf(isfalse, validators.minLength(2));
+      should(f.validator('c', null)).equal(true);
+
+      msgs = f.message('Age');
+      should(msgs.length).equal(0);
+      done();
+    });
+
+    it('should validate a specific field within an object', (done) => {
+      let f = validators.validateObjectFields('age', 'Age', validators.minLength(2));
+      should(f.validator({ age: 'c' })).equal(false);
+      let msgs = f.message('Age');
+      should(msgs.field).equal('age');
+      should(msgs.messages.length).equal(1);
+      should(msgs.messages[0]).equal('Age is too short (minimum is 2 characters).');
+      should(f.validator(null)).equal(false);
+      should(f.validator({ age: 'csd' })).equal(true);
+      done();
+    });
+
+    it('should validate a value against multiple validators', (done) => {
+      let f = validators.validateMultiple(validators.isIn(['abc', 'def', 'xyz']), validators.minLength(2));
+      should(f.validator('fred')).equal(false);
+      should(f.validator('cd')).equal(false);
+      
+      let msgs = f.message('Age');
+      should(msgs.length).equal(1);
+      should(msgs[0]).equal('Age must have one of these values: abc, def, xyz.');
+      
+      should(f.validator('xyz')).equal(true);
+
+      done();
+    });
     
   });
 

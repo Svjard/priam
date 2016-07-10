@@ -208,17 +208,17 @@ export function lessThan(number) {
  * @memberOf recipes.validators
  */
 export function validateIf(conditional, validators) {
-  const validateMultiple = validateMultiple(validators);
+  const validateMultipleInst = validateMultiple(validators);
   return {
     validator: (value, instance) => {
-      if (conditional.call(this, value, instance)) {
-        return validateMultiple.validator.call(this, value, instance);
+      if (conditional(value, instance)) {
+        return validateMultipleInst.validator(value, instance);
       }
       else {
         return true;
       }
     },
-    message: (displayName) => { return validateMultiple.message(displayName); }
+    message: (displayName) => { return validateMultipleInst.message(displayName); }
   }
 }
 
@@ -238,20 +238,20 @@ export function validateObjectFields(field, displayName, validators) {
     displayName = field;
   }
   
-  const validateMultiple = validateMultiple(validators);
+  const validateMultipleInst = validateMultiple(validators);
   return {
     validator: (value, instance) => {
       if (!_.isNull(value)) {
-        return validateMultiple.validator.call(this, value[field], instance);
+        return validateMultipleInst.validator(value[field], instance);
       }
       else {
         return false;
       }
     },
-    message: (parentDisplayName) => {
+    message: () => {
       return {
         field: field,
-        messages: validateMultiple.message(displayName)
+        messages: validateMultipleInst.message(displayName)
       };
     }
   }
@@ -274,7 +274,7 @@ export function validateMultiple(validators) {
       }
       
       failedValidators = _.reduce(validators, (memo, validator) => {
-        if (!validator.validator.call(self, value, instance)) {
+        if (!validator.validator(value, instance)) {
           memo.push(validator);
         }
         return memo;
@@ -283,7 +283,7 @@ export function validateMultiple(validators) {
       return failedValidators.length === 0;
     },
     message: (displayName) => {
-      return _.map(failedValidators, (validator) => { return validator.message.call(this, displayName); });
+      return _.map(failedValidators, (validator) => { return validator.message(displayName); });
     }
   }
 }
