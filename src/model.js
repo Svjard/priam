@@ -270,149 +270,89 @@ function ensureTable(CustomModel) {
   });
 }
 
-/**
- * Base class for defining models for the ORM.
- * @class
- */
 export default class Model {
-  constructor(assignments) {
+  /**
+   * Base class for defining models for the ORM.
+   * @param {Object<string, *>} [attrs] The initial set of attributes
+   * @param {!Object} [options] The model options
+   * @class Model
+   */
+  constructor(attrs, options) {
+    /* type-check */
+    if (attrs) {
+      check.assert.object(attrs);
+    }
+
+    if (options) {
+      check.assert.object(options);
+    }
+    /* end-type-check */
     this.exists = false;
     this.upsert = false;
     this.columns = {};
     this.changes = {};
     this.prevChanges = {};
     this.invalidColumns = null;
-
-    // set assignments
-    if (assignments) {
-      if (!helpers.isPlainObject(assignments)) {
-        throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeObject'));
-      }
-      else {
-        console.log('constructor set');
-        this.set(assignments);
-        console.log('constructor set done');
-      }
-    }
-  }
-
-  static compile(orm, name, schema, validations, options) {
-    if (!(orm instanceof Orm)) {
-      Promise.reject(new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeOrm')));
-    }
-    else if (!_.isString(name)) {
-      Promise.reject(new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeString')));
-    }
-    else if (!(schema instanceof Schema)) {
-      Promise.reject(new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeSchema')));
-    }
-    else if (validations && !(validations instanceof Validations)) {
-      Promise.reject(new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeObject')));
-    }
-    else if (options && !helpers.isPlainObject(options)) {
-      Promise.reject(new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeObject')));
-    }
-    
-    class CustomModel extends Model {
-      constructor(assignments, options) {
-        // super constructor
-        super(assignments);
-
-        console.log('custom constructor', this.runCallbacks);
-        
-        if (!options || !options._skipAfterNewCallback) {
-          // afterNew callbacks
-          this.runCallbacks('afterNew');
-        }
-      }
-    };
-
-    console.log('Custom Model Methods', CustomModel.find);
-    
-    // instance property to model class
-    CustomModel.prototype._model = CustomModel;
-    
-    // static properties
-    CustomModel._orm = orm;
-    CustomModel._name = name;
-    CustomModel._schema = schema;
-    CustomModel._validations = validations;
-    CustomModel._options = options;
-
-    console.log('opts 2', CustomModel._options);
-    
-    CustomModel._ready = false;
-    CustomModel._queryQueue = {
+    this.ready = false;
+    this.queryQueue = {
       execute: [],
       eachRow: [],
       stream: []
     };
-    
-    // static callbacks
-    CustomModel._callbacks = {};
-    _.each(Schema._CALLBACK_KEYS, (key, index) => {
-      CustomModel._callbacks[key] = [];
-    });
 
-    console.log('ensure table call');
-    
-    // create table
-    return new Promise((resolve, reject) => {
-      console.log('create table call');
-      ensureTable(CustomModel)
-        .then(() => {
-          console.log('model ready')
-          CustomModel._ready = true;
-          CustomModel.processQueryQueue();
+    this.orm = orm;
+    this.name = name || new this().constructor.name;
+    this.options = options;
 
-          // schema mixins
-          schema.mixin(CustomModel);
-          
-          // validations mixins
-          if (validations) {
-            validations.mixin(CustomModel);
-          }
-          
-          resolve(CustomModel);
-        });
-    });
-  }
+    // set the initial set of attributes on the model
+    this.set(attrs);
 
-  validate(options) {
-    if (options) {
-      if (!helpers.isPlainObject(options)) {
-        throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeObject'));
-      }
-      else if (options.only && options.except) {
-        throw new errors.Model.InvalidArgument(i18n.t('errors.orm.general.onlyExpectExclusive'));
-      }
+    if (!options || !options.skipAfterNewCallback) {
+      this.afterNew();
     }
-    
+  }
+  
+  /**
+   * Validates the fields in the model based on the validations.
+   *
+   * @param {!Object} [options] Set of options to apply in validating
+   * @param {boolean} [options.only] 
+   * @param {boolean} [options.except] 
+   * @return {Promise}
+   * @private
+   * @function columns
+   * @memberOf Model
+   * @instance
+   */
+  validate(options) {
+    /* type-check */
+    if (options) {
+      check.assert.object(options) & check.assert.boolean(options.only) & check.assert.boolean(options.except);
+    }
+    /* end-type-check */
     options = _.extend({}, options);
     
     if (!options.callbacks || !(options.callbacks.skipAll || options.callbacks.skipBeforeValidate)) {
-      this.runCallbacks.call(this, 'beforeValidate');
+      this.beforeValidate();
     }
     
     let columns = null;
     // if update, only validate changed columns that aren't idempotent operations
-    if (this._upsert) {
-      columns = _.reduce(_.keys(this._changes), (memo, column) => {
-        if (this._changes[column].op['$set']) {
+    if (this.upsert) {
+      columns = _.reduce(_.keys(this.changes), (memo, column) => {
+        if (this.changes[column].op['$set']) {
           memo.push(column);
         }
         return memo;
       }, []);
-    }
-    // validate all columns
-    else {
-      columns = this._model._schema.columns();
+    } else {
+      columns = this.schema().columns();
     }
     
     let invalidColumns = null;
     _.each(columns, (column, index) => {
       if (!options || !(options.only || options.except) || (options.only && options.only.indexOf(column) > -1) || (options.except && options.except.indexOf(column) === -1)) {
-        const messages = this._model.validate(column, this.get(column), this);
+        const messages = this.model.validate(column, this.get(column), this); // TODO -- ??
         if (messages) {
           if (!invalidColumns) {
             invalidColumns = {};
@@ -422,98 +362,51 @@ export default class Model {
       }
     });
 
-    this._invalidColumns = invalidColumns;
+    this.invalidColumns = invalidColumns;
     
     if (!options.callbacks || !(options.callbacks.skipAll || options.callbacks.skipAfterValidate)) {
-      this.runCallbacks.call(this, 'afterValidate');
+      this.afterValidate();
     }
     
     return invalidColumns;
   }
 
+  /**
+   * Gets the current set of invalid columns, i.e. those which failed validation
+   *
+   * @return {Array<string>}
+   * @public
+   * @function invalidColumnsfunction
+   * @memberOf Model
+   * @instance
+   */
   invalidColumnsfunction() {
-    return this._invalidColumns;
+    return this.invalidColumns;
   }
 
-  static validate(column, value, instance) {
-    if (_.isString(column)) {
-      return validate(column, value, instance); // call with this context
-    }
-    else if (helpers.isPlainObject(column)) {
-      instance = value;
-      value = null;
-      let invalidColumns = null;
-      _.each(column, function(v, c) {
-        const messages = validate(c, v, instance);
-        if (messages) {
-          if (!invalidColumns) {
-            invalidColumns = {};
-          }
-          invalidColumns[c] = messages;
-        }
-      });
-      return invalidColumns;
-    }
-    else {
-      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
-    }
-  }
-
-  static sanitize(column, value, instance) {
-    if (_.isString(column)) {
-      return sanitize(column, value, instance);
-    }
-    else if (helpers.isPlainObject(column)) {
-      instance = value;
-      value = null;
-      let values = {};
-      _.each(column, (v, c) => {
-        values[c] = sanitize(c, v, instance);
-      });
-      return values;
-    }
-    else {
-      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
-    }
-  }
-
-  static validateSanitized(column, value, instance) {
-    if (_.isString(column)) {
-      return validateSanitized(column, value, instance);
-    }
-    else if (helpers.isPlainObject(column)) {
-      instance = value;
-      value = null;
-      let invalidColumns = null;
-      _.each(column, (v, c) => {
-        const messages = validateSanitized(c, v, instance);
-        if (messages) {
-          if (!invalidColumns) {
-            invalidColumns = {};
-          }
-          invalidColumns[c] = messages;
-        }
-      });
-      return invalidColumns;
-    }
-    else {
-      throw new lErrors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
-    }
-  }
-
+  /**
+   * Sets the value of a column.
+   *
+   * @param {string|Object<String, *>} column The name of the column or map of columns
+   *  and values to be set
+   * @param {*} [value] The value to set the value to
+   * @public
+   * @function set
+   * @memberOf Model
+   * @instance
+   */
   set(column, value) {
-    console.log('set find', column, value);
+    /* type-check */
+    column.assert.nonEmptyString(column);
+    /* end-type-check */
+
     if (helpers.isPlainObject(column)) {
       _.each(column, (v, c) => {
-        console.log('set find ##$$', c, v);
-        set.call(this, c, v);
+        this.set(c, v);
       });
     }
     else if (_.isString(column)) {
-      set.call(this, column, value);
-    }
-    else {
-      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
+      this.set(column, value);
     }
   }
 
@@ -986,6 +879,92 @@ export default class Model {
         });
         return c;
       }
+    }
+  }
+
+  /**
+   * Generates a ORM model which has compatible schema and validation set.
+   *
+   * @return {Promise}
+   * @private
+   * @function columns
+   * @memberOf Model
+   * @static
+   */
+  static compile(orm, name, schema, validations, options) {
+    return new Promise((resolve, reject) => {
+      ensureTable(this)
+        .then(() => {
+          this.ready = true;
+          this.processQueryQueue();
+          resolve();
+        });
+    });
+  }
+
+  static validate(column, value, instance) {
+    if (_.isString(column)) {
+      return validate(column, value, instance); // call with this context
+    }
+    else if (helpers.isPlainObject(column)) {
+      instance = value;
+      value = null;
+      let invalidColumns = null;
+      _.each(column, function(v, c) {
+        const messages = validate(c, v, instance);
+        if (messages) {
+          if (!invalidColumns) {
+            invalidColumns = {};
+          }
+          invalidColumns[c] = messages;
+        }
+      });
+      return invalidColumns;
+    }
+    else {
+      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
+    }
+  }
+
+  static sanitize(column, value, instance) {
+    if (_.isString(column)) {
+      return sanitize(column, value, instance);
+    }
+    else if (helpers.isPlainObject(column)) {
+      instance = value;
+      value = null;
+      let values = {};
+      _.each(column, (v, c) => {
+        values[c] = sanitize(c, v, instance);
+      });
+      return values;
+    }
+    else {
+      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
+    }
+  }
+
+  static validateSanitized(column, value, instance) {
+    if (_.isString(column)) {
+      return validateSanitized(column, value, instance);
+    }
+    else if (helpers.isPlainObject(column)) {
+      instance = value;
+      value = null;
+      let invalidColumns = null;
+      _.each(column, (v, c) => {
+        const messages = validateSanitized(c, v, instance);
+        if (messages) {
+          if (!invalidColumns) {
+            invalidColumns = {};
+          }
+          invalidColumns[c] = messages;
+        }
+      });
+      return invalidColumns;
+    }
+    else {
+      throw new lErrors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
     }
   }
 

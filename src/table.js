@@ -37,7 +37,9 @@ export default class Table {
     /* type-check */
     check.assert.instanceStrict(orm, Orm);
     check.assert.nonEmptyString(name);
-    checkOptions(options);
+    if (options) {
+      checkOptions(options);
+    }
     /* end-type-check */
     /**
      * @type {string}

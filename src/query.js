@@ -1,9 +1,11 @@
 // Libraries
 import _ from 'lodash';
 import cassandra from 'cassandra-driver';
+import check from 'check-types';
 // Modules
 import { errors } from './errors';
 import * as helpers from './helpers';
+import Model from './model';
 import types from './types';
 
 const ACTIONS = {
@@ -67,11 +69,34 @@ const UPDATE_OPERATIONS = {
 const IF_OPERATIONS = WHERE_OPERATIONS;
 
 class Query {
+  /**
+   * Query representation for a generating a Cassandra compatible query.
+   * @param {Model} model The Model class being represented
+   * @param {!Object} orm The instance of the Model
+   * @class Query
+   */
   constructor(model, instance) {
+    /* type-check */
+    check.assert.object(model);
+    check.assert.instanceStrict(instance, Model);
+    /* end-type-check */
+    /**
+     * @type {Model}
+     * @name model
+     * @public
+     * @memberOf Query
+     */
     this.model = model;
+    /**
+     * @type {Model}
+     * @name instance
+     * @public
+     * @memberOf Query
+     */
     this.instance = instance;
     
-    // fields
+    // fields used in generating the distinct parts
+    // of the query
     this.action = null;
     this.count = null;
     this.select = null;
@@ -87,11 +112,33 @@ class Query {
     this.if = null;
   }
 
+  /**
+   * Runs a query and returns a given set of rows.
+   *
+   * @param {Array<string>} conditions The conditions that will make up
+   *  the `where` clause of the query
+   * @return {Promise}
+   * @public
+   * @function find
+   * @memberOf Query
+   * @instance
+   */
   find(conditions) {
     this.where(conditions);
     return this.all();
   }
 
+  /**
+   * Runs a query and returns the first row found.
+   *
+   * @param {Array<string>} conditions The conditions that will make up
+   *  the `where` clause of the query
+   * @return {Promise}
+   * @public
+   * @function find
+   * @memberOf Query
+   * @instance
+   */
   findOne(conditions) {
     this.where(conditions);
     return this.first();
@@ -101,8 +148,21 @@ class Query {
     this.action = action;
     return this;
   }
-
+  
+  /**
+   * Sets the specific set of columns to select in the query.
+   *
+   * @param {Array<string>} columns The list of the columns to select
+   * @return {Query}
+   * @public
+   * @function select
+   * @memberOf Query
+   * @instance
+   */
   select(columns) {
+    /* type-check */
+    check.assert.array(columns);
+    /* end-type-check */
     _.each(columns, (column, index) => {
       if (_.isArray(column)) {
         if (column.length > 0) {
@@ -125,8 +185,20 @@ class Query {
     return this;
   }
 
+  /**
+   * Sets the conditions to apply in the `where` clause of the query.
+   *
+   * @param {string|Array<string>} arg1 Either the name of the column or
+   *  a list of conditions
+   * @param {string} arg2 The value the column should be equal to, or undefined
+   *  if arg1 is an Array
+   * @return {Query}
+   * @public
+   * @function where
+   * @memberOf Query
+   * @instance
+   */
   where(arg1, arg2) {
-    // normalize
     if (_.isString(arg1)) {
       const where = {};
       where[arg1] = { '$eq': arg2 };
@@ -138,11 +210,12 @@ class Query {
       if (!helpers.isPlainObject(conditions)) {
         conditions = { '$eq': conditions };
       }
-      
+
       // add to conditions
       if (!this.where) {
         this.where = {};
       }
+
       if (!this.where[column]) {
         this.where[column] = {};
       }
@@ -151,18 +224,31 @@ class Query {
     });
 
     return this;
-  };
+  }
 
+  /**
+   * Sets the `order by` clause of the query.
+   *
+   * @param {string|Array<string>} arg1 Either the name of the column or
+   *  a list of conditions
+   * @param {string} arg2 The value the column should be equal to, or undefined
+   *  if arg1 is an Array
+   * @return {Query}
+   * @public
+   * @function where
+   * @memberOf Query
+   * @instance
+   */
   orderBy(arg1, arg2) {
     if (_.isString(arg1) && _.isString(arg2)) {
       const order = {};
       order[arg1] = arg2;
       arg1 = order;
     }
-    
+
     _.each(arg1, (order, column) => {
       if (!ORDERING[order]) {
-        throw new errors.InvalidOrderingError(i18n.t('errors.orm.general.invalidOrdering', { order: order }));
+        throw new errors.InvalidOrderingError(`Invalid ordering: ${order}.`);
       }
     });
 

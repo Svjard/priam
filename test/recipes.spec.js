@@ -15,7 +15,7 @@ describe('ORM :: Recipes', () => {
     sandbox.restore();
   });
 
-  describe('Sanitzers', () => {
+  describe('+ Sanitzers', () => {
     it('should sanitize email addresses correctly', (done) => {
       should(sanitzers.email('abc@foo.com')).equal('abc@foo.com');
       should(sanitzers.email('aaa ')).equal('aaa');
@@ -46,7 +46,7 @@ describe('ORM :: Recipes', () => {
     });
   });
 
-  describe('Validators', () => {
+  describe('+ Validators', () => {
     it('should validate an email address correctly', (done) => {
       should(validators.email.validator('abc@foo.com')).equal(true);
       should(validators.email.validator('aaa ')).equal(false);
@@ -230,7 +230,7 @@ describe('ORM :: Recipes', () => {
     
   });
 
-  describe('Callbacks', () => {
+  describe('+ Callbacks', () => {
     it('should do nothing', (done) => {
       done();
     })
