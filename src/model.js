@@ -427,15 +427,27 @@ export default class Model {
       _set.call(this, column, value);
     }
     else {
-      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeString'));
+      throw new errors.Model.InvalidArgument('Type should be a string.');
     }
   }
-
+ 
+  /**
+   * Get the value of a column.
+   *
+   * @param {string|Object<String, *>} column The name of the column or array of
+   *  columns to fetch the value for
+   * @return {*} The value of the column or an Map of column name to values if 
+   *  multiple columns were specified
+   * @public
+   * @function get
+   * @memberOf Model
+   * @instance
+   */
   get(column) {
     if (_.isArray(column)) {
       let columns = {};
       _.each(column, (c, index) => {
-        columns[c] = get.call(this, c);
+        columns[c] = this.get(c);
       });
       return columns;
     }
@@ -443,7 +455,7 @@ export default class Model {
       return get.call(this, column);
     }
     else {
-      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeString'));
+      throw new errors.InvalidArgument('Column name should be a string');
     }
   }
 
@@ -472,31 +484,57 @@ export default class Model {
     return value;
   }
 
+  /**
+   * Adds a new value to a set type for a given column.
+   *
+   * @param {string} column The name of the column
+   * @param {*} value The value to append to the set
+   * @public
+   * @function add
+   * @memberOf Model
+   * @instance
+   */
   add(column, value) {
-    if (!this._model._schema.isColumn(column)) {
-      throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
+    /* type-check */
+    check.assert.nonEmtpyString(column);
+    /* end-type-check */
+    if (!this.model.schema.isColumn(column)) {
+      throw new errors.InvalidColumn(`Invalid column: ${column}.`);
     }
-    else if (this._model._schema.baseColumnType(column) !== 'set') {
-      throw new errors.Model.InvalidColumnType(i18n.t('errors.orm.general.addOnlyOnSet'));
+    else if (this.model.schema.baseColumnType(column) !== 'set') {
+      throw new errors.InvalidColumnType('Add can only be performed on columns of type set.');
     }
     
     // don't allow adding duplicates
-    const newValue = this._get(column);
+    const newValue = this.get(column);
     if (newValue && newValue.indexOf(value) > -1) {
       return;
     }
     
-    append.call(this, '$add', column, value);
+    this.append('$add', column, value);
   }
-
+  
+  /**
+   * Removes a value from a collection for a given column.
+   *
+   * @param {string} column The name of the column
+   * @param {*} value The value to remove from the collection
+   * @public
+   * @function remove
+   * @memberOf Model
+   * @instance
+   */
   remove(column, value) {
-    if (!this._model._schema.isColumn(column)) {
-      throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
+    /* type-check */
+    check.assert.nonEmtpyString(column);
+    /* end-type-check */
+    if (!this.model.schema.isColumn(column)) {
+      throw new errors.InvalidColumn(`Invalid column: ${column}.`);
     }
     else {
-      const baseType = this._model._schema.baseColumnType(column)
+      const baseType = this.model.schema.baseColumnType(column)
       if (baseType !== 'set' && baseType !== 'list' && baseType !== 'map') {
-        throw new errors.Model.InvalidColumnType(i18n.t('errors.orm.general.removeOnlyOnCollection'));
+        throw new errors.InvalidColumnType('Remove can only be performed on columns of type set, list, and map.');
       }
     }
     
@@ -507,27 +545,27 @@ export default class Model {
     }
     
     // if update, only record idempotent operations
-    if (this._upsert) {
-      if (this._changes[column]) {
-        if (this._changes[column].op['$remove']) {
-          this._changes[column].op['$remove'].push(value);
+    if (this.upsert) {
+      if (this.changes[column]) {
+        if (this.changes[column].op['$remove']) {
+          this.changes[column].op['$remove'].push(value);
         }
         else {
-          throw new errors.Model.OperationConflict(i18n.t('errors.orm.general.multipleConflictingOps', {column: column}));
+          throw new errors.OperationConflict(`Multiple conflicting operations on column: ${column}.`);
         }
       }
       else {
-        this._changes[column] = { op: { '$remove': [value] } };
+        this.changes[column] = { op: { '$remove': [value] } };
       }
       return;
     }
     
     // full set and change tracking
-    const prevValue = this._changes[column] ? this._changes[column].prev : this._get(column);
+    const prevValue = this.changes[column] ? this.changes[column].prev : this.get(column);
     let newValue = null;
     
     // remove
-    newValue = this._get(column);
+    newValue = this.get(column);
     if (newValue) {
       newValue = helpers.without(newValue, value);
       if (newValue.length === 0) {
@@ -538,25 +576,25 @@ export default class Model {
       newValue = null;
     }
     
-    this._typeSpecificSet.call(this, column, newValue);
+    this.typeSpecificSet(column, newValue);
     
     // mark column changed
-    newValue = this._get(column);
+    newValue = this.get(column);
     if (!helpers.isEqual(newValue, prevValue)) {
-      if (this._changes[column]) {
-        if (this._changes[column].op['$remove']) {
-          this._changes[column].op['$remove'].push(value);
+      if (this.changes[column]) {
+        if (this.changes[column].op['$remove']) {
+          this.changes[column].op['$remove'].push(value);
         }
         else {
-          this._changes[column].op = { '$set': true };
+          this.changes[column].op = { '$set': true };
         }
       }
       else {
-        this._changes[column] = { prev: prevValue, op: { '$remove': [value] } };
+        this.changes[column] = { prev: prevValue, op: { '$remove': [value] } };
       }
     }
     else {
-      delete this._changes[column];
+      delete this.changes[column];
     }
   }
 
