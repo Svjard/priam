@@ -399,6 +399,9 @@ export default class Model {
     /* type-check */
     column.assert.nonEmptyString(column);
     /* end-type-check */
+    if (!this.upsert && this.exists && this.model.schema.isKeyColumn()) {
+      throw new errors.CannotSetKeyColumns(`Columns in primary key cannot be modified once set: ${column}.`);
+    }
 
     if (helpers.isPlainObject(column)) {
       _.each(column, (v, c) => {
@@ -407,27 +410,6 @@ export default class Model {
     }
     else if (_.isString(column)) {
       this.set(column, value);
-    }
-  }
-
-  _set(column, value) {
-    // disallow setting primary key columns
-    if (!this._upsert && this._exists && this._model._schema.isKeyColumn()) {
-      throw new errors.Model.CannotSetKeyColumns(i18n.t('errors.orm.general.primaryKeyIsImmutable', {column: column}));
-    }
-    
-    if (_.isObject(column)) {
-      _.each(column, (v, c) => {
-        console.log('_set #1', c, v);
-        _set.call(this, c, v);
-      });
-    }
-    else if (_.isString(column)) {
-      console.log('_set #2', column, value);
-      _set.call(this, column, value);
-    }
-    else {
-      throw new errors.Model.InvalidArgument('Type should be a string.');
     }
   }
  
@@ -511,9 +493,9 @@ export default class Model {
       return;
     }
     
-    this.append('$add', column, value);
+    this.append('$add', column, value); // TODO
   }
-  
+
   /**
    * Removes a value from a collection for a given column.
    *
@@ -598,35 +580,48 @@ export default class Model {
     }
   }
 
+  /**
+   * Prepends a value to a list for a given column.
+   *
+   * @param {string} column The name of the column
+   * @param {*} value The value to prepend to the list collection
+   * @public
+   * @function prepend
+   * @memberOf Model
+   * @instance
+   */
   prepend(column, value) {
-    if (!this._model._schema.isColumn(column)) {
-      throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
+    /* type-check */
+    check.assert.nonEmtpyString(column);
+    /* end-type-check */
+    if (!this.model.schema.isColumn(column)) {
+      throw new errors.InvalidColumn(`Invalid column: ${column}.`);
     }
-    else if (this._model._schema.baseColumnType(column) !== 'list') {
-      throw new errors.Model.InvalidColumnType(i18n.t('errors.orm.general.prependOnlyOnList'));
+    else if (this.model.schema.baseColumnType(column) !== 'list') {
+      throw new errors.InvalidColumnType('Prepend can only be performed on columns of type list.');
     }
     
     // if update, only record idempotent operations
-    if (this._upsert) {
-      if (this._changes[column]) {
-        if (this._changes[column].op['$prepend']) {
-          this._changes[column].op['$prepend'].push(value);
+    if (this.upsert) {
+      if (this.changes[column]) {
+        if (this.changes[column].op['$prepend']) {
+          this.changes[column].op['$prepend'].push(value);
         }
         else {
-          throw new errors.Model.OperationConflict(i18n.t('errors.orm.general.multipleConflictingOps', {column: column}));
+          throw new errors.OperationConflict(`Multiple conflicting operations on column: ${column}.`);
         }
       }
       else {
-        this._changes[column] = { op: { '$prepend' : [value] } };
+        this.changes[column] = { op: { '$prepend' : [value] } };
       }
       return;
     }
     
     // full set and change tracking
-    const prevValue = this._changes[column] ? this._changes[column].prev : this._get(column);
+    const prevValue = this.changes[column] ? this.changes[column].prev : this.get(column);
     
     // prepend
-    let newValue = this._get(column);
+    let newValue = this.get(column);
     if (newValue) {
       newValue = [value].concat(newValue); // use concat to return a copy
     }
@@ -634,37 +629,50 @@ export default class Model {
       newValue = [value];
     }
     
-    this._typeSpecificSet.call(this, column, newValue);
+    this.typeSpecificSet(column, newValue);
     
     // mark column changed
-    newValue = this._get(column);
-    if (!lHelpers.isEqual(newValue, prevValue)) {
-      if (this._changes[column]) {
-        if (this._changes[column].op['$prepend']) {
-          this._changes[column].op['$prepend'].push(value);
+    newValue = this.get(column);
+    if (!helpers.isEqual(newValue, prevValue)) {
+      if (this.changes[column]) {
+        if (this.changes[column].op['$prepend']) {
+          this.changes[column].op['$prepend'].push(value);
         }
         else {
-          this._changes[column].op = { '$set': true };
+          this.changes[column].op = { '$set': true };
         }
       }
       else {
-        this._changes[column] = { prev: prevValue, op: { '$prepend' : [value] } };
+        this.changes[column] = { prev: prevValue, op: { '$prepend' : [value] } };
       }
     }
     else {
-      delete this._changes[column];
+      delete this.changes[column];
     }
   }
 
+  /**
+   * Appends a value to a list for a given column.
+   *
+   * @param {string} column The name of the column
+   * @param {*} value The value to append to the list collection
+   * @public
+   * @function append
+   * @memberOf Model
+   * @instance
+   */
   append(column, value) {
-    if (!this._model._schema.isColumn(column)) {
-      throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
+    /* type-check */
+    check.assert.nonEmtpyString(column);
+    /* end-type-check */
+    if (!this.model.schema.isColumn(column)) {
+      throw new errors.InvalidColumn(`Invalid column: ${column}.`);
     }
-    else if (this._model._schema.baseColumnType(column) !== 'list') {
-      throw new errors.Model.InvalidColumnType(i18n.t('errors.orm.general.appendOnlyOnList'));
+    else if (this.model.schema.baseColumnType(column) !== 'list') {
+      throw new errors.Model.InvalidColumnType('Append can only be performed on columns of type list.');
     }
     
-    append.call(this, '$append', column, value);
+    this.append('$append', column, value); // TODO
   }
 
   inject(column, key, value) {
@@ -1004,10 +1012,6 @@ export default class Model {
     else {
       throw new lErrors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeStringOrObject'));
     }
-  }
-
-  static new(assignments) {
-    return new this(assignments);
   }
 
   static create(assignments) {
