@@ -487,7 +487,7 @@ class Query {
 
   all() {
     if (this.action && this.action !== 'select') {
-      Promise.reject(new errors.ActionConflict('Conflicting action already set.');
+      Promise.reject(new errors.ActionConflict('Conflicting action already set.'));
     } else {
       this.action('select');
       return new Promise((resolve, reject) => {
