@@ -486,34 +486,23 @@ class Query {
   }
 
   all() {
-    console.log('AT ALL', this._action);
-    if (this._action && this._action !== 'select') {
-      console.log('AT ALL', 'FAILED');
-      Promise.reject(new errors.Query.ActionConflict(i18n.t('errors.orm.general.conflictingAction')));
-    }
-    else {
+    if (this.action && this.action !== 'select') {
+      Promise.reject(new errors.ActionConflict('Conflicting action already set.');
+    } else {
       this.action('select');
-      console.log('AT ALL', 'START');
       return new Promise((resolve, reject) => {
-        console.log('AT ALL', 'RUN', this.execute);
         this.execute()
-          .then((result) => {
-            console.log('AT ALL', 'DONE', result);
-            if (!_.isObject(result)) {
-              reject(new errors.Query.UnexpectedType(i18n.t('errors.orm.results.shouldBeObject')));
-            }
-            else if (!_.isArray(result.rows)) {
-              reject(new errors.Query.UnexpectedType(i18n.t('errors.orm.results.rowShouldBeArray')));
-            }
-            else {
-              result = _.map(result.rows, (row, index) => {
-                return this._model._newFromQueryRow(row);
-              });
-              resolve(result);
-            }
+          .then(result => {
+            /* type-check */
+            check.assert.object(result);
+            check.assert.array(result.rows);
+            /* end-type-check */
+            result = _.map(result.rows, (row, index) => {
+              return this.model.newFromQueryRow(row);
+            });
+            resolve(result);
           })
-          .catch((err) => {
-            console.log('AT ALL', 'DONE2', err);
+          .catch(err => {
             reject(err);
           })
       });

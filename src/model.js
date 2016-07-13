@@ -28,6 +28,8 @@ const HOOKS = [
  * Handler for validating a field in the model via
  * the validations.
  *
+ * Used with the static instance of validate on the Model.
+ *
  * @param {string} column The name of the field in the model
  * @param {*} value The current value of the field
  * @param {Model} instance The instance of the model 
@@ -45,16 +47,6 @@ function validate(column, value, instance) {
   }
 }
 
-function sanitize(column, value, instance) {
-  if (instance._validations) {
-    const recipe = instance.validations.recipe(column);
-    return Validations.sanitize(recipe, value, instance);
-  }
-  else {
-    return value;
-  }
-}
-
 function validateSanitized(column, value, instance) {
   const recipe = instance._validations.recipe(column);
   const displayName = displayNameFromRecipe(recipe, column);
@@ -68,135 +60,6 @@ function displayNameFromRecipe(recipe, column) {
   else {
     return column;
   }
-}
-
-function set(column, value) {
-  if (this.model.schema.isAlias(column)) {
-    column = this.model.schema.columnFromAlias(column);
-  }
-  
-  if (!this.model.schema.isColumn(column)) {
-    throw new errors.InvalidColumnError(i18n.t('errors.orm.general.invalidColumn', { column: column }));
-  }
-  else if (this._model._schema.baseColumnType(column) === 'counter') {
-    throw new errors.CannotSetCounterColumnsError(i18n.t('errors.orm.general.cannotSetCounterColumn', { column: column }));
-  }
-  
-  console.log('set global #2');
-  const prevValue = this.changes[column] ? this.changes[column].prev : this._get(column);
-  
-  // sanitize
-  value = sanitize(column, value, this.model);
-  
-  // schema setter
-  const setter = this._model._schema.columnSetter(column);
-  if (setter) {
-    value = setter.call(this, value);
-  }
-  
-  console.log('set global #5');
-  this._set(column, value);
-  
-  console.log('set global #6');
-
-  // don't mark keys as changed for UPDATE operations
-  if (this._upsert && this._model._schema.isKeyColumn(column)) {
-    console.log('set global #7');
-    return;
-  }
-  // mark column changed
-  else {
-    value = this._get(column);
-    if (!helpers.isEqual(value, prevValue)) {
-      this._changes[column] = { prev: prevValue, op: { '$set': true } };
-    }
-    else {
-      delete this._changes[column];
-    }
-  }
-
-  console.log('set global #8');
-}
-
-function _set(column, value) {
-  if (!this._model._schema.isColumn(column)) {
-    throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
-  }
-  
-  console.log('global _set #1', column, value);
-
-  // cassandra treats empty sets and lists as null values
-  if (_.isArray(value) && value.length === 0) {
-    value = null;
-  }
-  
-  if (!_.isNull(value)) { // allow null values
-    // cast string type to javascript types
-    if (_.isString(value)) {
-      const type = this._model._schema.baseColumnType(column);
-      if (types.isNumberType(this._model._orm, type)) {
-        value = parseFloat(value.replace(/[^\d\.\-]/g, ''));
-        if (_.isNaN(value)) {
-          value = null;
-        }
-      }
-      else if (types.isBooleanType(this._model._orm, type)) {
-        value = value !== '0' && value !== 'false' && value;
-      }
-    }
-    // cast cassandra types to javascript types
-    else {
-      value = types.castValue(this._model._orm, value);
-      console.log('global _set #2', column, value);
-    }
-    
-    console.log('global _set #3', column, value);
-    // validate type
-    // recheck null, since casting can cast to null
-    if (!_.isNull(value) && !this._model._schema.isValidValueTypeForColumn(column, value)) {
-      throw new errors.Model.TypeMismatch(i18n.t('errors.orm.general.invalidColumnType', {column: column, type: this._model._schema.columnType(column)}));
-    }
-
-    console.log('global _set #4', column, value);
-    
-    // make set array uniq
-    if (this._model._schema.baseColumnType(column) === 'set') {
-      value = helpers.uniq(value);
-    }
-
-    console.log('global _set #5', column, value);
-  }
-  
-  console.log('global _set #6', column, value);
-  this._columns[column] = value;
-}
-
-function get(column) {
-  if (!_.isString(column)) {
-    throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeString'));
-  }
-  else if (!this._model._schema.isColumn(column)) {
-    throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
-  }
-  
-  if (this._upsert && !this._model._schema.isKeyColumn(column)) {
-    if (!this._changes[column]) {
-      throw new errors.Model.IndeterminateValue(i18n.t('errors.orm.general.readingUndefinedValue', {column: column}));
-    }
-    else if (!this._changes[column].op['$set']) {
-      throw new errors.Model.IndeterminateValue(i18n.t('errors.orm.general.cannotReadIdentity', {column: column}));
-    }
-  }
-  
-  let value = this._get(column);
-  
-  // schema getter
-  const getter = this._model._schema.columnGetter(column);
-  if (getter) {
-    value = getter.call(this, value);
-  }
-  
-  return value;
 }
 
 function append(operation, column, value) {
@@ -372,6 +235,26 @@ export default class Model {
   }
 
   /**
+   * Santizes the value based on the sanitizer setup in the validations for the column if specified.
+   *
+   * @param {string} column The name of the column being sanitized
+   * @param {*} value The value of the column
+   * @return {*} The sanitized value
+   * @public
+   * @function sanitize
+   * @memberOf Model
+   * @instance
+   */
+  sanitize(column, value) {
+    if (this.validations()) {
+      const recipe = this.validations().recipe(column);
+      return Validations.sanitize(recipe, value, this);
+    } else {
+      return value;
+    }
+  }
+
+  /**
    * Gets the current set of invalid columns, i.e. those which failed validation
    *
    * @return {Array<string>}
@@ -405,11 +288,97 @@ export default class Model {
 
     if (helpers.isPlainObject(column)) {
       _.each(column, (v, c) => {
-        this.set(c, v);
+        this._set(c, v);
       });
     }
     else if (_.isString(column)) {
-      this.set(column, value);
+      this._set(column, value);
+    }
+  }
+
+  /**
+   * Sets the value of a column. This serves as a private helper function to process the `set`
+   * and is internal to the Model.
+   *
+   * @param {string|Object<String, *>} column The name of the column or map of columns
+   *  and values to be set
+   * @param {*} [value] The value to set the value to
+   * @public
+   * @function _set
+   * @memberOf Model
+   * @instance
+   */
+  _set(column, value) {
+    if (this.model.schema.isAlias(column)) {
+      column = this.model.schema.columnFromAlias(column);
+    }
+    
+    if (!this.model.schema.isColumn(column)) {
+      throw new errors.InvalidColumnError(`Invalid column: ${column}.`);
+    }
+    else if (this.model.schema.baseColumnType(column) === 'counter') {
+      throw new errors.CannotSetCounterColumnsError(`Counter column: ${column} cannot be set directly. Increment or decrement instead.`);
+    }
+    
+    const prevValue = this.changes[column] ? this.changes[column].prev : this.get(column);
+    
+    // sanitize
+    value = this.sanitize(column, value, this.model);
+    
+    // schema setter
+    const setter = this.model.schema.columnSetter(column);
+    if (setter) {
+      value = setter.call(this, value);
+    }
+    
+    // cassandra treats empty sets and lists as null values
+    if (_.isArray(value) && value.length === 0) {
+      value = null;
+    }
+    
+    if (!_.isNull(value)) { // allow null values
+      // cast string type to javascript types
+      if (_.isString(value)) {
+        const type = this.model.schema.baseColumnType(column);
+        if (types.isNumberType(this.model.orm, type)) {
+          value = parseFloat(value.replace(/[^\d\.\-]/g, ''));
+          if (_.isNaN(value)) {
+            value = null;
+          }
+        }
+        else if (types.isBooleanType(this.model.orm, type)) {
+          value = value !== '0' && value !== 'false' && value;
+        }
+      }
+      // cast cassandra types to javascript types
+      else {
+        value = types.castValue(this.model.orm, value);
+      }
+
+      // validate type
+      // recheck null, since casting can cast to null
+      if (!_.isNull(value) && !this.model.schema.isValidValueTypeForColumn(column, value)) {
+        throw new errors.TypeMismatch(`Value for ${column} should be of type: ${this.model.schema.columnType(column)}.`);
+      }
+
+      // make set array uniq
+      if (this.model.schema.baseColumnType(column) === 'set') {
+        value = helpers.uniq(value);
+      }
+    }
+    
+    this.columns[column] = value;
+    
+    if (this.upsert && this.model.schema.isKeyColumn(column)) {
+      return;
+    } else {
+      value = this.get(column);
+      if (!helpers.isEqual(value, prevValue)) {
+        this.changes[column] = { prev: prevValue, op: { '$set': true } };
+      }
+      else {
+        delete this.changes[column];
+      }
     }
   }
  
@@ -429,32 +398,57 @@ export default class Model {
     if (_.isArray(column)) {
       let columns = {};
       _.each(column, (c, index) => {
-        columns[c] = this.get(c);
+        columns[c] = this._get(c);
       });
       return columns;
     }
     else if (_.isString(column)) {
-      return get.call(this, column);
+      return this._get(column);
     }
     else {
       throw new errors.InvalidArgument('Column name should be a string');
     }
   }
-
+  
+  /**
+   * Gets the value of a column. This serves as a private helper function to process the `get`
+   * and is internal to the Model.
+   *
+   * @param {string} column The name of the column
+   * @private
+   * @function _get
+   * @memberOf Model
+   * @instance
+   */
   _get(column) {
-    if (!_.isString(column)) {
-      throw new errors.Model.InvalidArgument(i18n.t('errors.orm.arguments.shouldBeString'));
+    /* type-check */
+    check.assert.nonEmptyString(colum);
+    /* end-type-check */
+    if (!this.model.schema.isColumn(column)) {
+      throw new errors.InvalidColumn(`Invalid column: ${column}.`);
     }
-    else if (!this._model._schema.isColumn(column)) {
-      throw new errors.Model.InvalidColumn(i18n.t('errors.orm.general.invalidColumn', {column: column}));
+
+    if (this.upsert && !this.model.schema.isKeyColumn(column)) {
+      if (!this.changes[column]) {
+        throw new errors.IndeterminateValue(`Reading value not previously set for column: ${column}.`);
+      }
+      else if (!this.changes[column].op['$set']) {
+        throw new errors.IndeterminateValue(`Reading value modified by idempotent operations for column: ${column}.`);
+      }
     }
-    
-    let value = this._columns[column];
+
+    let value = this.columns[column];
+
+    // schema getter
+    const getter = this.model.schema.columnGetter(column);
+    if (getter) {
+      value = getter.call(this, value);
+    }
     
     // cast undefined
     if (_.isUndefined(value)) {
       // cast counters to 0
-      if (this._model._schema.columnType(column) === 'counter') {
+      if (this.model.schema.columnType(column) === 'counter') {
         value = 0;
       }
       // cast everything else to null
