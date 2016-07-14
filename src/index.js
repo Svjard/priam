@@ -401,23 +401,19 @@ export default class Orm {
    * @param {Object} options
    * @return {Promise}
    */
-  addModel(name, schema, validations, options) {
+  addModel(name, model, options) {
     if (this.models[name]) {
       return Promise.reject(new errors.DuplicateModelError(`Model with same name already added: ${name}.`));
     }
 
-    // default options
-    options = _.extend({}, this.options.model, options);
+    model.orm = this;
+    model.name = (model.name) ? model.name() : new model().constructor.name;
+    model.schemaDef = new Schema(this, model.schema(), options.schema);
+    model.validationsDef = model.validations() ? new Validations(schemaDef, model.validations(), options.validations) : null;
+    model.options = options;
 
-    const _schema = new Schema(this, schema, options.schema);
-    const _validations = validations ? new Validations(_schema, validations, options.validations) : null;
-    return new Promise((resolve, reject) => {
-      Model.compile(this, name, _schema, _validations, options)
-        .then(model => {
-          this.models[name] = model;
-          resolve(model);
-        });
-    });
+    // register the model with the orm
+    this.models[model.name()] = model;
   }
 
   /**

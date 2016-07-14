@@ -117,22 +117,6 @@ function append(operation, column, value) {
   }
 }
 
-function ensureTable(CustomModel) {
-  console.log('ensure table at', CustomModel._options.tableName(CustomModel._name));
-  CustomModel._table = new Table(CustomModel._orm, CustomModel._options.tableName(CustomModel._name), CustomModel._schema, CustomModel._options.table);
-  return new Promise((resolve, reject) => {
-    CustomModel._table.ensureExists()
-      .then(() => {
-        console.log('ensure Table #1');
-        resolve();
-      })
-      .catch((err) => {
-        console.log('ensure Table #2', err);
-        reject(new errors.Model.EnsureTableExists(i18n.t('errors.orm.general.failedEnsuringTable', { err: err })));
-      });
-  });
-}
-
 export default class Model {
   /**
    * Base class for defining models for the ORM.
@@ -163,16 +147,38 @@ export default class Model {
       stream: []
     };
 
-    this.orm = orm;
-    this.name = name || new this().constructor.name;
-    this.options = options;
-
     // set the initial set of attributes on the model
     this.set(attrs);
 
     if (!options || !options.skipAfterNewCallback) {
       this.afterNew();
     }
+  }
+
+  /**
+   * Makes sure the table which maps to the model exists.
+   *
+   * @return {Promise} Resolves once the table is verified to exist or is created, otherwise
+   *  rejects with an error
+   * @private
+   * @ignore
+   * @function ensureTable
+   * @memberOf Model
+   * @instance
+   */
+  ensureTable() {
+    this.table = new Table(this.orm, this.options.tableName(this.name), this.schemaDef, this.options.table);
+    return new Promise((resolve, reject) => {
+      this.table.ensureExists()
+        .then(() => {
+          this.ready = true;
+          this.processQueryQueue();
+          resolve();
+        })
+        .catch((err) => {
+          reject(new errors.EnsureTableExists(`Error trying to ensure table exists: ${err}.`));
+        });
+    });
   }
   
   /**
@@ -209,13 +215,13 @@ export default class Model {
         return memo;
       }, []);
     } else {
-      columns = this.schema().columns();
+      columns = this.schemaDef().columns();
     }
     
     let invalidColumns = null;
     _.each(columns, (column, index) => {
       if (!options || !(options.only || options.except) || (options.only && options.only.indexOf(column) > -1) || (options.except && options.except.indexOf(column) === -1)) {
-        const messages = this.model.validate(column, this.get(column), this); // TODO -- ??
+        const messages = this.validate(column, this.get(column), this);
         if (messages) {
           if (!invalidColumns) {
             invalidColumns = {};
@@ -282,7 +288,7 @@ export default class Model {
     /* type-check */
     column.assert.nonEmptyString(column);
     /* end-type-check */
-    if (!this.upsert && this.exists && this.model.schema.isKeyColumn()) {
+    if (!this.upsert && this.exists && this.schema.isKeyColumn()) {
       throw new errors.CannotSetKeyColumns(`Columns in primary key cannot be modified once set: ${column}.`);
     }
 
@@ -309,21 +315,21 @@ export default class Model {
    * @instance
    */
   _set(column, value) {
-    if (this.model.schema.isAlias(column)) {
-      column = this.model.schema.columnFromAlias(column);
+    if (this.schemaDef.isAlias(column)) {
+      column = this.schemaDef.columnFromAlias(column);
     }
     
-    if (!this.model.schema.isColumn(column)) {
+    if (!this.schemaDef.isColumn(column)) {
       throw new errors.InvalidColumnError(`Invalid column: ${column}.`);
     }
-    else if (this.model.schema.baseColumnType(column) === 'counter') {
+    else if (this.schemaDef.baseColumnType(column) === 'counter') {
       throw new errors.CannotSetCounterColumnsError(`Counter column: ${column} cannot be set directly. Increment or decrement instead.`);
     }
     
     const prevValue = this.changes[column] ? this.changes[column].prev : this.get(column);
     
     // sanitize
-    value = this.sanitize(column, value, this.model);
+    value = this.sanitize(column, value, this);
     
     // schema setter
     const setter = this.model.schema.columnSetter(column);
@@ -920,26 +926,6 @@ export default class Model {
         return c;
       }
     }
-  }
-
-  /**
-   * Generates a ORM model which has compatible schema and validation set.
-   *
-   * @return {Promise}
-   * @private
-   * @function columns
-   * @memberOf Model
-   * @static
-   */
-  static compile(orm, name, schema, validations, options) {
-    return new Promise((resolve, reject) => {
-      ensureTable(this)
-        .then(() => {
-          this.ready = true;
-          this.processQueryQueue();
-          resolve();
-        });
-    });
   }
 
   static validate(column, value, instance) {
