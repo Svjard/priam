@@ -137,10 +137,8 @@ export default class Orm {
       keyspace: {
         replication: { 'class': 'SimpleStrategy', 'replication_factor': 1 },
         durableWrites: true,
-        ensureExists: {
-          run: true, // check if keyspace exists and automatically create it if it doesn't
-          alter: false // alter existing keyspace to match replication or durableWrites
-        }
+        ensureExists: true,
+        alter: false // alter existing keyspace to match replication or durableWrites
       },
       logger: {
         level: 'debug', // log this level and higher [debug < info < warn < error]
@@ -163,30 +161,25 @@ export default class Orm {
           }
         },
         table: {
-          ensureExists: {
-            run: true, // check if keyspace exists and automaticcaly create it if it doesn't
-            recreate: false, // drop and recreate table on schema mismatch, takes precedence over following options
-            recreateColumn: false,  // recreate columns where types don't match schema
-            removeExtra: false,  // remove extra columns not in schema
-            addMissing: false // add columns in schema that aren't in table
-          }
+          ensureExists: true,
+          recreate: false, // drop and recreate table on schema mismatch, takes precedence over following options
+          recreateColumn: false,  // recreate columns where types don't match schema
+          removeExtra: false,  // remove extra columns not in schema
+          addMissing: false // add columns in schema that aren't in table
         }
       },
       userDefinedType: {
-        ensureExists: {
-          run: true,
-          recreate: false, // drop and recreate type on schema mismatch, takes precedence over following options
-          changeType: false, // change field types to match schema
-          addMissing: false // add fields in schema that aren't in type
-        }
+        ensureExists: true,
+        recreate: false, // drop and recreate type on schema mismatch, takes precedence over following options
+        changeType: false, // change field types to match schema
+        addMissing: false // add fields in schema that aren't in type
       }
     };
 
     const mergedOptions = _.extend({}, _.omit(options, 'keyspace', 'logger', 'model', 'userDefinedType'));
 
     if (options.keyspace) {
-      mergedOptions.keyspace = _.extend(defaults.keyspace, _.omit(options.keyspace, 'ensureExists'));
-      mergedOptions.keyspace.ensureExists = _.extend(defaults.keyspace.ensureExists, options.keyspace.ensureExists);
+      mergedOptions.keyspace = _.extend(defaults.keyspace);
     } else {
       mergedOptions.keyspace = defaults.keyspace;
     }
@@ -200,8 +193,7 @@ export default class Orm {
     if (options.model) {
       mergedOptions.model = _.extend(_.omit(defaults.model, 'table'), _.omit(options.model, 'table'));
       if (options.model.table) {
-        mergedOptions.model.table = {};
-        mergedOptions.model.table.ensureExists = _.extend(defaults.model.table.ensureExists, options.model.table.ensureExists);
+        mergedOptions.model.table = _.extend(defaults.model.table, options.model.table);
       } else {
         mergedOptions.model.table = defaults.model.table;
       }
@@ -210,8 +202,7 @@ export default class Orm {
     }
 
     if (options.userDefinedType) {
-      mergedOptions.userDefinedType = _.extend(defaults.userDefinedType, _.omit(options.userDefinedType, 'userDefinedType'));
-      mergedOptions.userDefinedType.ensureExists = _.extend(defaults.userDefinedType.ensureExists, options.userDefinedType.ensureExists);
+      mergedOptions.userDefinedType = _.extend(defaults.userDefinedType.ensureExists, options.userDefinedType.ensureExists);
     } else {
       mergedOptions.userDefinedType = defaults.userDefinedType;
     }
@@ -406,14 +397,22 @@ export default class Orm {
       return Promise.reject(new errors.DuplicateModelError(`Model with same name already added: ${name}.`));
     }
 
+    options = _.extend({}, this.options.model, options);
+
     model.orm = this;
-    model.name = (model.name) ? model.name() : new model().constructor.name;
+    model.modelName = name;
     model.schemaDef = new Schema(this, model.schema(), options.schema);
     model.validationsDef = model.validations() ? new Validations(schemaDef, model.validations(), options.validations) : null;
     model.options = options;
 
     // register the model with the orm
-    this.models[model.name()] = model;
+    this.models[model.modelName] = model;
+
+    if (options.model.table.ensureExists) {
+      return model.ensureTable();
+    }
+
+    return Promise.resolve();
   }
 
   /**

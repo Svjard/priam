@@ -1,5 +1,6 @@
 // Libraries
 import _ from 'lodash';
+import check from 'check-types';
 // Modules
 import { orm as errors } from './errors';
 import * as helpers from './helpers';
@@ -23,44 +24,6 @@ const HOOKS = [
   'beforeDelete',
   'afterDelete'
 ];
-
-/**
- * Handler for validating a field in the model via
- * the validations.
- *
- * Used with the static instance of validate on the Model.
- *
- * @param {string} column The name of the field in the model
- * @param {*} value The current value of the field
- * @param {Model} instance The instance of the model 
- * @return {(boolean | null)}
- * @ignore
- */
-function validate(column, value, instance) {
-  if (instance.validations) {
-    const recipe = instance.validations.recipe(column);
-    const displayName = displayNameFromRecipe(recipe, column);
-    return Validations.validate(recipe, value, displayName, instance);
-  }
-  else {
-    return null;
-  }
-}
-
-function validateSanitized(column, value, instance) {
-  const recipe = instance._validations.recipe(column);
-  const displayName = displayNameFromRecipe(recipe, column);
-  return Validations.validateSanitized(recipe, value, displayName, instance);
-}
-
-function displayNameFromRecipe(recipe, column) {
-  if (recipe.displayName) {
-    return recipe.displayName;
-  }
-  else {
-    return column;
-  }
-}
 
 function append(operation, column, value) {
   // if update, only record idempotent operations
@@ -148,11 +111,32 @@ export default class Model {
     };
 
     // set the initial set of attributes on the model
-    this.set(attrs);
+    if (attrs) {
+      this.set(attrs);
+    }
 
-    if (!options || !options.skipAfterNewCallback) {
+    if (!options || !options.skipAfterNewHook) {
       this.afterNew();
     }
+  }
+
+  // Callbacks
+  afterNew() {}
+  beforeCreate() {}
+  afterCreate() {}
+  beforeValidate() {}
+  afterValidate() {}
+  beforeSave() {}
+  afterSave() {}
+  beforeDelete() {}
+  afterDelete() {}
+
+  static schema() {
+    return null;
+  }
+
+  static validations() {
+    return null;
   }
 
   /**
@@ -221,7 +205,7 @@ export default class Model {
     let invalidColumns = null;
     _.each(columns, (column, index) => {
       if (!options || !(options.only || options.except) || (options.only && options.only.indexOf(column) > -1) || (options.except && options.except.indexOf(column) === -1)) {
-        const messages = this.validate(column, this.get(column), this);
+        const messages = this._validate(column);
         if (messages) {
           if (!invalidColumns) {
             invalidColumns = {};
@@ -238,6 +222,51 @@ export default class Model {
     }
     
     return invalidColumns;
+  }
+
+  /**
+   * Handler for validating a field in the model via the validations.
+   *
+   * @param {string} column The name of the field in the model
+   * @return {(boolean | null)}
+   * @private
+   * @ignore
+   */
+  _validate(column) {
+    const val = this.get(column);
+    if (this.validations) {
+      const recipe = this.validationsDef.recipe(column);
+      const displayName = this.displayNameFromRecipe(recipe, column);
+      return Validations.validate(recipe, val, displayName, instance);
+    }
+    else {
+      return null;
+    }
+  }
+
+  validateSanitized(column, value, instance) {
+    const recipe = instance._validations.recipe(column);
+    const displayName = displayNameFromRecipe(recipe, column);
+    return Validations.validateSanitized(recipe, value, displayName, instance);
+  }
+  
+  /**
+   * Helper method for returning the display name for a given validator's
+   * field.
+   *
+   * @param {Validator} recipe The validator
+   * @param {string} column The column name
+   * @return {string}
+   * @private
+   * @ignore
+   */
+  displayNameFromRecipe(recipe, column) {
+    if (recipe.displayName) {
+      return recipe.displayName;
+    }
+    else {
+      return column;
+    }
   }
 
   /**
