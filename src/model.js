@@ -25,61 +25,6 @@ const HOOKS = [
   'afterDelete'
 ];
 
-function append(operation, column, value) {
-  // if update, only record idempotent operations
-  if (this._upsert) {
-    if (this._changes[column]) {
-      if (this._changes[column].op[operation]) {
-        this._changes[column].op[operation].push(value);
-      }
-      else {
-        throw new lErrors.Model.OperationConflict(i18n.t('errors.orm.general.multipleConflictingOps', {column: column}));
-      }
-    }
-    else {
-      let op = {};
-      op[operation] = [value];
-      this._changes[column] = { op: op };
-    }
-    return;
-  }
-  
-  // full set and change tracking
-  const prevValue = this._changes[column] ? this._changes[column].prev : this._get(column);
-  
-  // append
-  let newValue = this._get(column);
-  if (newValue) {
-    newValue = newValue.concat([value]); // use concat to return a copy
-  }
-  else {
-    newValue = [value];
-  }
-  
-  this._typeSpecificSet.call(this, column, newValue);
-  
-  // mark column changed
-  newValue = this._get(column);
-  if (!lHelpers.isEqual(newValue, prevValue)) {
-    if (this._changes[column]) {
-      if (this._changes[column].op[operation]) {
-        this._changes[column].op[operation].push(value);
-      }
-      else {
-        this._changes[column].op = { '$set': true };
-      }
-    }
-    else {
-      let op = {};
-      op[operation] = [value];
-      this._changes[column] = { prev: prevValue, op: op };
-    }
-  }
-  else {
-    delete this._changes[column];
-  }
-}
-
 export default class Model {
   /**
    * Base class for defining models for the ORM.
@@ -522,7 +467,7 @@ export default class Model {
       return;
     }
     
-    this.append('$add', column, value); // TODO
+    this._append('$add', column, value); // TODO
   }
 
   /**
@@ -702,6 +647,72 @@ export default class Model {
     }
     
     this.append('$append', column, value); // TODO
+  }
+
+  /**
+   * Internal method for validating and performing an append to a list column.
+   *
+   * @param {string} operation Should always be '$append'
+   * @param {string} column The name of the column
+   * @param {*} value The value to append to the list collection
+   * @public
+   * @function _append
+   * @memberOf Model
+   * @instance
+   */
+  _append(operation, column, value) {
+    // if update, only record idempotent operations
+    if (this.upsert) {
+      if (this.changes[column]) {
+        if (this.changes[column].op[operation]) {
+          this.changes[column].op[operation].push(value);
+        }
+        else {
+          throw new lErrors.Model.OperationConflict(i18n.t('errors.orm.general.multipleConflictingOps', {column: column}));
+        }
+      }
+      else {
+        let op = {};
+        op[operation] = [value];
+        this._changes[column] = { op: op };
+      }
+      return;
+    }
+    
+    // full set and change tracking
+    const prevValue = this._changes[column] ? this._changes[column].prev : this._get(column);
+    
+    // append
+    let newValue = this._get(column);
+    if (newValue) {
+      newValue = newValue.concat([value]); // use concat to return a copy
+    }
+    else {
+      newValue = [value];
+    }
+    
+    this._typeSpecificSet.call(this, column, newValue);
+    
+    // mark column changed
+    newValue = this._get(column);
+    if (!lHelpers.isEqual(newValue, prevValue)) {
+      if (this._changes[column]) {
+        if (this._changes[column].op[operation]) {
+          this._changes[column].op[operation].push(value);
+        }
+        else {
+          this._changes[column].op = { '$set': true };
+        }
+      }
+      else {
+        let op = {};
+        op[operation] = [value];
+        this._changes[column] = { prev: prevValue, op: op };
+      }
+    }
+    else {
+      delete this._changes[column];
+    }
   }
 
   inject(column, key, value) {
@@ -1411,6 +1422,51 @@ export default class Model {
     return query.allowFiltering.apply(query, arguments);
   }
 
+  static select() {
+    let query = new Query(this);
+    return query.select.apply(query, arguments);
+  }
+
+  static orderBy() {
+    let query = new Query(this);
+    return query.orderBy.apply(query, arguments);
+  }
+
+  static limit() {
+    let query = new Query(this);
+    return query.limit.apply(query, arguments);
+  }
+
+  static first() {
+    let query = new Query(this);
+    return query.first.apply(query, arguments);
+  }
+
+  static count() {
+    let query = new Query(this);
+    return query.count.apply(query, arguments);
+  }
+
+  static truncate() {
+    let query = new Query(this);
+    return query.truncate.apply(query, arguments);
+  }
+
+  static eachRow() {
+    let query = new Query(this);
+    return query.eachRow.apply(query, arguments);
+  }
+
+  static stream() {
+    let query = new Query(this);
+    return query.stream.apply(query, arguments);
+  }
+
+  static deleteAll() {
+    let query = new Query(this);
+    return query.deleteAll.apply(query, arguments);
+  }
+
   save() {
     console.log('sss save');
     let query = new Query(this._model, this);
@@ -1418,21 +1474,10 @@ export default class Model {
   }
 };
 
-// define static query methods
-_.each(['select', 'orderBy', 'limit', 'first', 'count', 'eachRow', 'stream', 'truncate', 'deleteAll'], (method, index) => {
-  Model[method] = () => {
-    console.log('method', method, arguments);
-    let query = new Query(this);
-    return query[method].apply(query, arguments);
-  }
-});
-
  // define instance query methods
-_.each(['using', 'ttl', 'timestamp', 'if', 'ifExists', 'ifNotExists', 'delete'], (method, index) => {
+/*_.each(['using', 'ttl', 'timestamp', 'if', 'ifExists', 'ifNotExists', 'delete'], (method, index) => {
   Model.prototype[method] = () => {
     let query = new Query(this._model, this);
     return query[method].apply(query, arguments);
   }
-});
-
-export default Model;
+});*/

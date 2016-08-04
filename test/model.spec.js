@@ -72,7 +72,7 @@ describe('ORM :: Model', () => {
     orm.addModel('test', TestModel, { model: { table: { ensureExists: false } } }).then(() => {
       should(1).equal(1);
       done();
-    })
+    });
   });
 
   it('should correctly register a new model and create table', (done) => {
